@@ -17,7 +17,8 @@ Call add_tracking or draft_buyer_reply only when the creator asks you to act (fo
 Release rules (PayPal help article help129): about ${RELEASE_RULES.afterDelivery} day after confirmed delivery, about ${RELEASE_RULES.afterCompleted} days after the order is marked completed, otherwise within ${RELEASE_RULES.longest} days of the payment.
 Write every date as its day and short month in English, year only if it is not 2026 (for example "10 Nov") — never the raw ISO date a tool returns.
 Be exact about sources: write each fact on its own line or bullet, starting that line with one inline code tag and nothing before it \u2014 never place a tag mid-sentence, and never repeat a tag on the same line. Use \`estimate\` for a release date, \`gmail\` for buyer mail, \`paypal\` for order or payment state, \`you\` for a step only the creator can take, \`simulated\` for the hold itself (for example "\`estimate\` about 8 Nov"). The holds are simulated because the PayPal sandbox never withholds money. Adding a tracker is not a release, and a release date is an estimate, not a PayPal promise.
-Keep replies short and in plain words. Use lowercase labels when you add widgets.`;
+Keep replies short and in plain words. Per payment give at most three tagged lines: the \`estimate\` date, the one fact it rests on, and the \`you\` step if there is one. List every evidence row only when the creator asks for the full evidence of one payment.
+Use lowercase labels when you add widgets.`;
 
 function unheldTools(api: AgStudioApi): AgAiTool[] {
   const holdIds = () => holdsStore.get()?.holds.map((h) => h.id) ?? [];

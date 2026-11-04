@@ -1,3 +1,4 @@
+import { resetOnSignIn } from '@/lib/demo-reset';
 import { ACCESS_COOKIE, accessToken } from '@/proxy';
 
 // Relative redirects: behind a proxy (Render) or on 127.0.0.1, request.url's host is not the one
@@ -8,6 +9,7 @@ export async function POST(request: Request) {
   const ok = !code || form.get('code') === code;
   const headers = new Headers({ Location: ok ? '/' : '/enter?wrong=1' });
   if (ok && code) {
+    await resetOnSignIn();
     const secure = request.headers.get('x-forwarded-proto') === 'https' || request.url.startsWith('https:');
     headers.append(
       'Set-Cookie',

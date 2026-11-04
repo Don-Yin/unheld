@@ -80,6 +80,17 @@ export async function resetDemo(): Promise<void> {
   return startReset();
 }
 
+/**
+ * Reset on each correct access code (app/api/enter/route.ts), so a judge who signs in after another
+ * judge tracked Tom's parcel still starts fresh (simulated judge, 2026-11-04: the next run found Tom
+ * already tracked). Skipped within a minute of the last reset; never counts against the button's
+ * rate limit. Never throws.
+ */
+export async function resetOnSignIn(): Promise<void> {
+  if (state.inFlight || Date.now() - state.resetAt < MIN_MANUAL_INTERVAL_MS) return;
+  await startReset().catch((e) => console.error('demo sign-in reset failed:', (e as Error).message));
+}
+
 /** Automatic reset: the first load after a server start, and whenever the state goes stale. Never throws. */
 export async function ensureFreshDemo(): Promise<void> {
   if (state.orderIds && Date.now() - state.resetAt <= MAX_AGE_MS) return;
