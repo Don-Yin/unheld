@@ -1,0 +1,60 @@
+# Render Blueprint for the assembled public repo (scripts/assemble-public.mjs
+# copies this file to the repo root, next to package.json).
+#
+# Env var values are intentionally left unset here (sync: false): set them by
+# hand in the Render dashboard after deploy, never commit secrets to this file
+# or to Git. See env.example in this app for what each one does.
+#
+# Starter is the paid 0.5 CPU / 512 MB web-service compute plan (legacy name
+# for plan id 0.5c-512mb, ~$7/month); it does not require a paid workspace
+# plan (Hobby/free workspace is enough), just billing set up for the service.
+services:
+  - type: web
+    name: unheld
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    envVars:
+      # Gate: long random string required on every page and /api/* route.
+      - key: ACCESS_CODE
+        sync: false
+
+      # AI provider (OpenRouter), lib/ai/provider.ts + lib/ai/guard.ts.
+      - key: AI_PROVIDER
+        sync: false
+      - key: AI_API_KEY
+        sync: false
+      - key: AI_MODELS
+        sync: false
+      - key: AI_DAILY_LIMIT
+        sync: false
+
+      # PayPal sandbox REST app, lib/paypal.ts.
+      - key: PAYPAL_API_BASE
+        sync: false
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_TEST_CARD
+        sync: false
+      - key: PAYPAL_TEST_CARD_EXPIRY
+        sync: false
+      - key: PAYPAL_TEST_CARD_CVV
+        sync: false
+
+      # Gmail evidence widget, lib/gmail.ts.
+      - key: GOOGLE_OAUTH_CLIENT_ID
+        sync: false
+      - key: GOOGLE_OAUTH_CLIENT_SECRET
+        sync: false
+      - key: GMAIL_REFRESH_TOKEN
+        sync: false
+      - key: GMAIL_TEST_ADDRESS
+        sync: false
+
+      # Optional AG Studio licence key (trial watermark shows without it).
+      - key: AG_STUDIO
+        sync: false
