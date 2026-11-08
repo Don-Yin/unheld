@@ -18,7 +18,11 @@ export async function POST(request: Request) {
   if (refused) return error(429, refused);
   let body: Record<string, unknown>;
   try {
-    body = JSON.parse(text);
+    const parsed: unknown = JSON.parse(text);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return error(400, 'request body must be a json object');
+    body = parsed as Record<string, unknown>;
+    if (body.tools !== undefined && (!Array.isArray(body.tools) || body.tools.some((tool) => !tool || typeof tool !== 'object' || Array.isArray(tool))))
+      return error(400, 'tools must be an array of objects');
   } catch {
     return error(400, 'Request body must be JSON.');
   }

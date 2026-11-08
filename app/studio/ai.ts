@@ -3,13 +3,14 @@
 // /api/ai/responses, which holds the model key, so nothing secret reaches the browser.
 
 import { createAiHarness, directLlmRunner, type AgAiHarnessSetup, type AgAiTool, type AgStudioApi } from 'ag-studio';
-import { RELEASE_RULES } from '@/lib/holds';
+import { RELEASE_RULES, type Hold } from '@/lib/holds';
 import { openaiAdapter } from './openai-adapter';
-import { holdsStore, runAction } from './store';
+import { holdsStore, runAction, type ActionResult } from './store';
 
 const INSTRUCTIONS = `
 You work for an independent creator whose PayPal payments are on hold. Your job is to get each payment released.
 For each hold: read its evidence (get_hold_evidence), decide the next step, and say when the money should arrive.
+Name each payment with its returned payment label, creator name plus item, as its heading (for example "Maya Chen · Portrait commission"). Never use internal record keys or transaction identifiers as payment names.
 Call add_tracking or draft_buyer_reply only when the creator asks you to act (for example "what can you do today?" or "do it"); for a question such as "when do i get paid?", answer and name the step you would take.
 - Physical item with a tracking number found in Gmail and no tracker yet: call add_tracking.
 - Digital item with no buyer confirmation: call draft_buyer_reply. It saves a Gmail draft; it never sends.
@@ -20,35 +21,53 @@ Be exact about sources: write each fact on its own line or bullet, starting that
 Keep replies short and in plain words. Per payment give at most three tagged lines: the \`estimate\` date, the one fact it rests on, and the \`you\` step if there is one. List every evidence row only when the creator asks for the full evidence of one payment.
 Use lowercase labels when you add widgets.`;
 
+const paymentName = (hold: Pick<Hold, 'creator' | 'item'>) => `${hold.creator} · ${hold.item}`;
+
 function unheldTools(api: AgStudioApi): AgAiTool[] {
-  const holdIds = () => holdsStore.get()?.holds.map((h) => h.id) ?? [];
-  const act = runAction;
+  const payments = () => holdsStore.get()?.holds.map(paymentName) ?? [];
+  // Model-facing names resolve to the internal key only at the shared action boundary.
+  const act = async (payment: string, action: 'track' | 'draft', input: Record<string, string>): Promise<ActionResult> => {
+    const matches = holdsStore.get()?.holds.filter((h) => paymentName(h) === payment) ?? [];
+    return matches.length === 1 ? runAction(matches[0].id, action, input) : { ok: false, error: 'that payment name is missing or ambiguous; refresh payments' };
+  };
   return [
     api.defineAiTool({
       name: 'get_hold_evidence',
-      description: 'Every held payment with its next step, estimated release date and evidence timeline (sources: simulated, paypal, gmail, you, estimate).',
+      description: 'Every held payment, named by creator and item, with its next step, estimated release date and evidence timeline (sources: simulated, paypal, gmail, you, estimate).',
       params: (s) => s.object({}),
       execute: (_args, ctx) => {
         const data = holdsStore.get();
-        return data ? ctx.success(JSON.stringify(data)) : ctx.error('holds are still loading');
+        if (!data) return ctx.error('holds are still loading');
+        return ctx.success(JSON.stringify({
+          asOf: data.asOf,
+          payments: data.holds.map((hold) => ({
+            payment: paymentName(hold), creator: hold.creator, item: hold.item,
+            buyer: hold.buyer, buyerEmail: hold.buyerEmail, kind: hold.kind,
+            amount: hold.amount, currency: hold.currency, heldSince: hold.heldSince,
+            hold: hold.hold, nextStep: hold.nextStep, release: hold.release,
+            trackingFound: hold.trackingFound, withTrackingRelease: hold.withTrackingRelease,
+            draft: hold.draft && { to: hold.draft.to, subject: hold.draft.subject, body: hold.draft.body, url: hold.draft.url },
+            evidence: data.evidence.filter((row) => row.holdId === hold.id).map(({ at, source, text }) => ({ at, source, text })),
+          })),
+        }));
       },
     }),
     api.defineAiTool({
       name: 'add_tracking',
       description: 'Attach a shipment tracking number to the PayPal order of a held physical payment. Real PayPal sandbox call.',
-      params: (s) => s.object({ holdId: s.enum(holdIds), trackingNumber: s.string(), carrier: s.string() }),
-      execute: async ({ holdId, trackingNumber, carrier }, ctx) => {
-        const r = await act(holdId, 'track', { trackingNumber, carrier: carrier || 'ROYAL_MAIL' });
-        return r.ok ? ctx.success(`tracker added to PayPal order ${r.orderId}`, r) : ctx.error(String(r.error));
+      params: (s) => s.object({ payment: s.enum(payments), trackingNumber: s.string(), carrier: s.string() }),
+      execute: async ({ payment, trackingNumber, carrier }, ctx) => {
+        const r = await act(payment, 'track', { trackingNumber, carrier: carrier || 'ROYAL_MAIL' });
+        return r.ok ? ctx.success(`tracking added for ${payment}`, { payment, refreshError: r.refreshError }) : ctx.error(String(r.error));
       },
     }),
     api.defineAiTool({
       name: 'draft_buyer_reply',
       description: "Save a reply to the buyer as a draft in the creator's Gmail. Never sends. Leave body empty for the standard request to confirm receipt.",
-      params: (s) => s.object({ holdId: s.enum(holdIds), body: s.string() }),
-      execute: async ({ holdId, body }, ctx) => {
-        const r = await act(holdId, 'draft', { body });
-        return r.ok ? ctx.success(`draft ${r.draftId} saved for ${r.to}; the creator must send it`, r) : ctx.error(String(r.error));
+      params: (s) => s.object({ payment: s.enum(payments), body: s.string() }),
+      execute: async ({ payment, body }, ctx) => {
+        const r = await act(payment, 'draft', { body });
+        return r.ok ? ctx.success(`draft saved for ${payment}, not sent`, { payment, to: r.to, url: r.draft?.url, refreshError: r.refreshError }) : ctx.error(String(r.error));
       },
     }),
   ];

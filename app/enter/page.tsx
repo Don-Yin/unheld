@@ -3,8 +3,8 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = { title: 'enter' };
 
-export default async function Enter({ searchParams }: { searchParams: Promise<{ wrong?: string }> }) {
-  const { wrong } = await searchParams;
+export default async function Enter({ searchParams }: { searchParams: Promise<{ wrong?: string; reset?: string }> }) {
+  const { wrong, reset } = await searchParams;
   return (
     <main className="flex min-h-dvh items-center justify-center p-6">
       <form method="post" action="/api/enter" className="flex w-full max-w-xs flex-col gap-3">
@@ -22,6 +22,7 @@ export default async function Enter({ searchParams }: { searchParams: Promise<{ 
           className="h-11 rounded-md border border-pp-border bg-pp-surface px-3 outline-none focus-visible:ring-2 focus-visible:ring-pp-blue"
         />
         {wrong && <p className="text-sm text-pp-danger">that code is not right</p>}
+        {reset && <p role="alert" className="text-sm text-pp-danger">could not reset the demo; wait a moment and try opening it again</p>}
         <button className="flex h-11 items-center justify-center gap-1.5 rounded-md bg-pp-blue font-semibold text-white focus-visible:ring-2 focus-visible:ring-pp-navy focus-visible:ring-offset-2">
           <LogIn className="size-4 shrink-0" strokeWidth={1.5} aria-hidden />
           open

@@ -3,6 +3,7 @@
 // part of the page rather than a component embedded in it: change a token there and the shell,
 // widgets, grids and charts all follow.
 
+import { themeQuartz } from 'ag-grid-community';
 import { studioTheme } from 'ag-studio';
 
 const token = (name: string) => `var(--pp-${name})`;
@@ -113,4 +114,25 @@ export const agStudioPayPalTheme = studioTheme.withParams({
   chartAxisLineColor: token('border'),
   chartGridLineColor: token('gridline'),
   ...palette,
+});
+
+// gantt-widget.tsx's calendar gantt is a raw AG Grid (ag-studio's own grid widget has no gridOptions
+// passthrough for colSpan/custom headers — see that file's header comment), so it needs AG Grid's
+// own Theming API rather than studioTheme's grid* params above. Same tokens, so it still reads as
+// part of the page, not a second grid style.
+export const agGridPayPalTheme = themeQuartz.withParams({
+  accentColor: token('blue'),
+  backgroundColor: token('surface'),
+  foregroundColor: token('ink'),
+  textColor: token('ink'),
+  borderColor: token('border'),
+  headerBackgroundColor: token('surface'),
+  headerTextColor: token('muted'),
+  headerFontWeight: 600,
+  rowHoverColor: token('highlight'),
+  wrapperBorder: false,
+  headerRowBorder: { width: 1, color: token('border') },
+  rowBorder: { width: 1, color: token('gridline') },
+  fontFamily: token('font'),
+  cellHorizontalPadding: 8,
 });

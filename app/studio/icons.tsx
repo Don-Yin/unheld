@@ -1,13 +1,20 @@
 // Single source of truth for every icon unheld shows, so the demo video can match them.
 // One line set, 14-16px, stroke 1.5, text-role colour; see frontend-design-convention.
-// Don picked two original icons (docs/video/unheld-demo/assets/unheld-mark.svg, .../on-hold.svg);
-// public/brand-mark.svg and public/on-hold.svg are symlinks to those same files, never copies, so
-// the app and the video always draw from one source each.
+// Don picked two original icons (docs/video/unheld-demo/assets/unheld-mark.svg, .../on-hold.svg).
+// public/brand-mark.svg is a symlink to unheld-mark.svg, never a copy: it's original multi-colour
+// artwork (its own fixed fill/stroke colours), not a recolourable single-tone line icon, so it stays
+// a plain <img> via `mark()` below. on-hold.svg (00-ui-gantt round N, paypal-challenge peer) is the
+// opposite case: a lucide-style line icon (24px viewBox, stroke 1.5, currentColor, no fill) that must
+// actually take the surrounding text's colour the way every other icon here does - an <img> can never
+// resolve `currentColor` against the host page (it renders in its own opaque document), so HOLD_ICON
+// is drawn inline as a real component instead. docs/video/unheld-demo/assets/on-hold.svg holds the
+// identical markup as a standalone file for the video to render with its own fixed colour; edit both
+// together so the app and the video keep drawing the same mark.
 
 import { CalendarClock, FlaskConical, Mail, User, Wallet, type LucideIcon } from 'lucide-react';
 import type { Source } from '@/lib/holds';
 
-// A plain <img>, not a lucide component: both marks are original multi-colour artwork (their own
+// A plain <img>, not a lucide component: this mark is original multi-colour artwork (its own
 // fixed fill/stroke colours), not a recolourable single-tone line icon, so `strokeWidth` (every
 // call site passes it, matching the lucide icons around it) is accepted and ignored.
 type MarkProps = { className?: string; strokeWidth?: number; 'aria-hidden'?: boolean };
@@ -27,17 +34,45 @@ export const SOURCE_ICON: Record<Source, LucideIcon> = {
   simulated: FlaskConical,
 };
 
-export const SOURCE_ICON_NAME: Record<Source, string> = {
-  paypal: 'wallet',
-  gmail: 'mail',
-  you: 'user',
-  estimate: 'calendar-clock',
-  simulated: 'flask-conical',
-};
-
-// The hold itself: every place a payment is shown as "on hold" (the grid's Hold column, the
-// evidence timeline's "hold placed" row) uses this one icon, not a source badge.
-export const HOLD_ICON = mark('/on-hold.svg');
+// The hold itself: every place a payment is shown as "on hold" (the gantt's bars, the evidence
+// timeline's "hold placed" row) uses this one icon, not a source badge. A pound sign inside a ring
+// of short ticks (a clock face standing for the wait, 00-ui-gantt round N replacing an hourglass that
+// read as a generic "loading" spinner rather than the specific held-payment amount) - the same shape
+// as docs/video/unheld-demo/assets/on-hold.svg, kept in sync by hand since an <img> can't pick up
+// `currentColor` the way this inline version does (see the file header comment).
+function HoldIcon({ className, strokeWidth = 1.5, 'aria-hidden': ariaHidden = true }: MarkProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden={ariaHidden}
+    >
+      {/* Ring of 8 short ticks, lucide's own Loader spokes shortened (radius 8-10 instead of 6-10) so
+          they read as a clock face rather than a loading spinner. */}
+      <path d="M12 2v2" />
+      <path d="m17.7 6.3 1.4-1.4" />
+      <path d="M20 12h2" />
+      <path d="m17.7 17.7 1.4 1.4" />
+      <path d="M12 20v2" />
+      <path d="m6.3 17.7-1.4 1.4" />
+      <path d="M4 12H2" />
+      <path d="m6.3 6.3-1.4-1.4" />
+      {/* lucide's own pound-sterling glyph, scaled to ~0.83x and recentred inside the ring;
+          non-scaling-stroke keeps its stroke the same visual weight as the ticks above despite the
+          scale transform. */}
+      <g transform="translate(2.3 0.9) scale(0.8333)">
+        <path d="M17 18a2 2 0 01-2 2H5a3 3 0 003-3V8a4 4 0 018 0" vectorEffect="non-scaling-stroke" />
+        <path d="M6 12h7" vectorEffect="non-scaling-stroke" />
+      </g>
+    </svg>
+  );
+}
+export const HOLD_ICON = HoldIcon;
 
 // Brand mark: header and favicon (app/icon.tsx reads the same unheld-mark.svg at request time).
 export const BRAND_ICON = mark('/brand-mark.svg');

@@ -23,48 +23,68 @@
 // (the same pattern Prisma's own Next.js docs use for its client singleton, for the same reason).
 
 import { freshOrderIds } from '@/scripts/seed.mjs';
-import { deleteDraft } from './gmail';
+import { deleteDraft, readDraft } from './gmail';
+import type { BuyerDraft } from './holds';
 
-export const MAX_AGE_MS = 6 * 60 * 60 * 1000; // auto reset once the demo state is this old
 const MIN_MANUAL_INTERVAL_MS = 60_000; // rate limit for the 'reset demo' button
 
 type State = {
   orderIds?: Record<string, string>;
-  resetAt: number;
-  // Only the manual 'reset demo' button sets this; the automatic reset (instrumentation.ts on
-  // startup, and ensureFreshDemo() when state goes stale) must never count against the button's
-  // rate limit, or a judge's first click right after a fresh server start gets refused.
+  // Startup and access-code sign-in must not consume the manual button's rate limit.
   lastManualAttempt: number;
   inFlight?: Promise<void>;
   createdDraftIds: Set<string>;
+  draftsByOrder: Map<string, BuyerDraft>;
+  actionsInFlight: Set<string>;
 };
 
 const KEY = Symbol.for('unheld.demo-reset');
 // SAFETY: globalThis has no index signature for an arbitrary Symbol key; this module is the only
 // reader/writer of KEY, and every access goes through `state` below, so the shape is ours to define.
 const g = globalThis as unknown as { [KEY]?: State };
-const state: State = (g[KEY] ??= { resetAt: 0, lastManualAttempt: 0, createdDraftIds: new Set() });
+const state: State = (g[KEY] ??= { lastManualAttempt: 0, createdDraftIds: new Set(), draftsByOrder: new Map(), actionsInFlight: new Set() });
 
 /** The order id the running demo currently points a fixture at, or its seeded fallback. */
 export function currentOrderId(fixtureId: string, fallback: string): string {
   return state.orderIds?.[fixtureId] ?? fallback;
 }
 
-/** Record a draft id so a later reset deletes it; never anything the creator wrote by hand. */
-export function trackCreatedDraft(id: string) {
-  state.createdDraftIds.add(id);
+/** Remember only our own drafts, keyed by the sandbox order so repeated requests reuse one. */
+export function trackCreatedDraft(orderId: string, draft: BuyerDraft) {
+  state.createdDraftIds.add(draft.id);
+  state.draftsByOrder.set(orderId, draft);
 }
+
+/** Refresh a known draft from Gmail. A deleted/sent draft no longer appears as an unsent reply. */
+export async function draftForOrder(orderId: string): Promise<BuyerDraft | undefined> {
+  const known = state.draftsByOrder.get(orderId);
+  if (!known) return;
+  const draft = await readDraft(known.id);
+  if (draft) state.draftsByOrder.set(orderId, draft);
+  else {
+    state.draftsByOrder.delete(orderId);
+    state.createdDraftIds.delete(known.id);
+  }
+  return draft;
+}
+
+export function claimPaymentAction(id: string) {
+  if (state.inFlight || state.actionsInFlight.has(id)) return false;
+  state.actionsInFlight.add(id);
+  return true;
+}
+export const finishPaymentAction = (id: string) => state.actionsInFlight.delete(id);
 
 async function doReset() {
   const env = process.env as Record<string, string>;
   const drafts = [...state.createdDraftIds];
   const [ids] = await Promise.all([
     freshOrderIds(env) as Promise<Record<string, string>>,
-    Promise.all(drafts.map((id) => deleteDraft(id).catch(() => {}))),
+    Promise.all(drafts.map((id) => deleteDraft(id))),
   ]);
   for (const id of drafts) state.createdDraftIds.delete(id);
+  state.draftsByOrder.clear();
   state.orderIds = ids;
-  state.resetAt = Date.now();
 }
 
 function startReset(): Promise<void> {
@@ -72,28 +92,24 @@ function startReset(): Promise<void> {
   return state.inFlight;
 }
 
-/** Manual reset (the 'reset demo' button): rate-limited, throws its refusal message instead of resetting. */
-export async function resetDemo(): Promise<void> {
+/** Each correct access-code entry starts the next judge with fresh orders and no app-owned drafts. */
+export function resetOnSignIn(): Promise<void> {
   if (state.inFlight) return state.inFlight;
-  if (Date.now() - state.lastManualAttempt < MIN_MANUAL_INTERVAL_MS) throw new Error('reset was just run; wait a moment and try again');
-  state.lastManualAttempt = Date.now();
+  if (state.actionsInFlight.size) throw new Error('a payment action is running; wait for it to finish');
   return startReset();
 }
 
-/**
- * Reset on each correct access code (app/api/enter/route.ts), so a judge who signs in after another
- * judge tracked Tom's parcel still starts fresh (simulated judge, 2026-11-04: the next run found Tom
- * already tracked). Skipped within a minute of the last reset; never counts against the button's
- * rate limit. Never throws.
- */
-export async function resetOnSignIn(): Promise<void> {
-  if (state.inFlight || Date.now() - state.resetAt < MIN_MANUAL_INTERVAL_MS) return;
-  await startReset().catch((e) => console.error('demo sign-in reset failed:', (e as Error).message));
+/** Manual reset: same guarded write, with an additional button rate limit. */
+export async function resetDemo(): Promise<void> {
+  if (state.inFlight) return state.inFlight;
+  if (Date.now() - state.lastManualAttempt < MIN_MANUAL_INTERVAL_MS) throw new Error('reset was just run; wait a moment and try again');
+  const reset = resetOnSignIn();
+  state.lastManualAttempt = Date.now();
+  return reset;
 }
 
-/** Automatic reset: the first load after a server start, and whenever the state goes stale. Never throws. */
+/** Startup only. Ordinary page/API reads never call the reset path. */
 export async function ensureFreshDemo(): Promise<void> {
-  if (state.orderIds && Date.now() - state.resetAt <= MAX_AGE_MS) return;
-  const run = state.inFlight ? state.inFlight.catch(() => {}) : startReset();
-  await run.catch((e) => console.error('demo auto-reset failed:', (e as Error).message));
+  try { if (!state.orderIds) await resetOnSignIn(); }
+  catch (e) { console.error('demo startup reset failed:', (e as Error).message); }
 }

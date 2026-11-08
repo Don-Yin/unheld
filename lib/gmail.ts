@@ -2,42 +2,11 @@
 // Auth is an offline refresh token for an "In production" (unverified) OAuth client, so it does not
 // expire after seven days the way a Testing-mode token would.
 
-const API = 'https://gmail.googleapis.com/gmail/v1/users/me';
-
-let cached: { value: string; expiresAt: number } | undefined;
+import { gmail, RemoteApiError } from './api-clients.mjs';
+import type { BuyerDraft } from './holds';
 
 export const gmailConfigured = () =>
   Boolean(process.env.GOOGLE_OAUTH_CLIENT_ID && process.env.GOOGLE_OAUTH_CLIENT_SECRET && process.env.GMAIL_REFRESH_TOKEN);
-
-async function accessToken(): Promise<string> {
-  if (cached && Date.now() < cached.expiresAt) return cached.value;
-  const res = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    body: new URLSearchParams({
-      client_id: process.env.GOOGLE_OAUTH_CLIENT_ID ?? '',
-      client_secret: process.env.GOOGLE_OAUTH_CLIENT_SECRET ?? '',
-      refresh_token: process.env.GMAIL_REFRESH_TOKEN ?? '',
-      grant_type: 'refresh_token',
-    }),
-    cache: 'no-store',
-  });
-  const json = await res.json();
-  if (!res.ok) throw new Error(`gmail token ${res.status}: ${json.error ?? 'unknown'}`);
-  cached = { value: json.access_token, expiresAt: Date.now() + (json.expires_in - 60) * 1000 };
-  return json.access_token;
-}
-
-async function gmail<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API}/${path}`, {
-    ...init,
-    headers: { Authorization: `Bearer ${await accessToken()}`, 'Content-Type': 'application/json' },
-    cache: 'no-store',
-  });
-  // DELETE (deleteDraft, below) returns 204 with no body.
-  const json = res.status === 204 ? {} : await res.json();
-  if (!res.ok) throw new Error(`gmail ${path.split('?')[0]} ${res.status}: ${json.error?.message ?? ''}`);
-  return json as T;
-}
 
 export type Mail = {
   id: string;
@@ -70,10 +39,10 @@ type RawMessage = {
  */
 export async function mailWith(address: string, max = 10): Promise<Mail[]> {
   const q = encodeURIComponent(`(from:${address} OR to:${address}) -in:drafts`);
-  const list = await gmail<{ messages?: { id: string }[] }>(`messages?q=${q}&maxResults=${max}`);
+  const list = await gmail<{ messages?: { id: string }[] }>(process.env, `messages?q=${q}&maxResults=${max}`);
   const messages = await Promise.all(
     (list.messages ?? []).map((m) =>
-      gmail<RawMessage>(`messages/${m.id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Subject`),
+      gmail<RawMessage>(process.env, `messages/${m.id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Subject`),
     ),
   );
   const seen = new Set<string>();
@@ -104,13 +73,37 @@ export async function createDraft(to: string, subject: string, body: string, thr
   const raw = Buffer.from(
     [`To: ${to}`, `Subject: ${subject}`, 'Content-Type: text/plain; charset=utf-8', '', body].join('\r\n'),
   ).toString('base64url');
-  return gmail<{ id: string; message: { id: string; threadId: string } }>('drafts', {
+  return gmail<{ id: string; message: { id: string; threadId: string } }>(process.env, 'drafts', {
     method: 'POST',
     body: JSON.stringify({ message: { raw, ...(threadId && { threadId }) } }),
   });
 }
 
-/** Delete a draft this app created (demo reset, lib/demo-reset.ts) - never one the creator wrote by hand. */
+export const draftsUrl = () => `https://mail.google.com/mail/u/?authuser=${encodeURIComponent(process.env.GMAIL_TEST_ADDRESS ?? '')}#drafts`;
+
+type Payload = { mimeType?: string; headers?: { name: string; value: string }[]; body?: { data?: string }; parts?: Payload[] };
+const plainText = (part: Payload): string =>
+  part.body?.data && (!part.mimeType || part.mimeType === 'text/plain')
+    ? Buffer.from(part.body.data, 'base64url').toString('utf8')
+    : (part.parts ?? []).map(plainText).filter(Boolean).join('\n');
+
+export async function readDraft(id: string): Promise<BuyerDraft | undefined> {
+  try {
+    const draft = await gmail<{ id: string; message: { payload: Payload } }>(process.env, `drafts/${encodeURIComponent(id)}?format=full`);
+    const payload = draft.message.payload;
+    const header = (name: string) => payload.headers?.find((h) => h.name.toLowerCase() === name)?.value ?? '';
+    return { id: draft.id, to: header('to'), subject: header('subject'), body: plainText(payload) || 'text preview unavailable; review this draft in gmail', url: draftsUrl() };
+  } catch (e) {
+    if (e instanceof RemoteApiError && e.status === 404) return;
+    throw e;
+  }
+}
+
+/** Delete only our own draft. An already deleted or sent draft needs no further deletion. */
 export async function deleteDraft(id: string): Promise<void> {
-  await gmail<Record<string, never>>(`drafts/${id}`, { method: 'DELETE' });
+  try {
+    await gmail<Record<string, never>>(process.env, `drafts/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  } catch (e) {
+    if (!(e instanceof RemoteApiError && e.status === 404)) throw e;
+  }
 }

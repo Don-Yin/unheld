@@ -1,10 +1,11 @@
 // AG Studio data sources: one row per held payment, one row per piece of evidence, joined on hold id.
 
 import type { AgDataSourcesDefinition, AgReportState } from 'ag-studio';
+import { gbp as gbpFormat } from '@/lib/holds';
 import type { UnheldRegistry } from './evidence-widget';
 import type { HoldsData } from './store';
 
-const gbp = { format: new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }) };
+const gbp = { format: gbpFormat };
 // Grid date columns: "31 Oct", no year. ag-studio's dateFormat field only accepts a static
 // Intl.DateTimeFormat (it has no per-row `now` to compare against), so unlike lib/holds.ts's
 // formatDate (used for free text: the estimate line, the assistant's answers) it cannot add the
@@ -32,7 +33,8 @@ export function buildStudioData({ holds, evidence }: HoldsData): AgDataSourcesDe
           // (ui-critique.md #1, round 2).
           { id: 'hold', name: 'hold', format: 'textFormat' },
           { id: 'nextStep', name: 'next step', format: 'textFormat' },
-          // Shown as the "paid by" column (gridOverride's ReleaseCell adds the muted relative hint).
+          // Not shown as a grid column of its own: gantt-widget.tsx's CreatorCell shows it (with a
+          // muted relative hint) in the pinned column instead, and the bar's flag marks it visually.
           { id: 'release', name: 'paid by', format: 'dateFormat', formatOptions: shortDate },
           { id: 'orderId', name: 'PayPal Order', format: 'textFormat', hide: true },
         ],
@@ -61,66 +63,41 @@ export function buildStudioData({ holds, evidence }: HoldsData): AgDataSourcesDe
   };
 }
 
-// One page: a quiet one-line summary, the held-payments grid sized to its rows (gridOptions has no
-// domLayout: 'autoHeight' escape hatch - see evidence-widget.tsx's gridOverride comment - so the
-// card's height is this fixed track span instead), and the evidence for the selected row beside it;
-// stacked on narrow screens, where Studio's 24-track canvas cannot fit them side by side. At narrow
-// widths the grid also drops to its three signature columns (creator, amount, paid by) so nothing is
-// clipped or needs horizontal scroll. columnAutoSize sizes every column (wide or narrow) to its
-// own content instead of AG Grid's default equal distribution, so "next step" is never truncated
-// and "paid by" is never clipped at 1440px (ui-critique.md #1, round 2).
+// Don's chosen version C (docs/ui-redesign/c-calendar-gantt.png): the held-payments table becomes a
+// calendar gantt that needs real width, not the old table's 14/24-track column beside a 10/24-track
+// evidence card. Both widgets now run the full 24 tracks, stacked: summary, gantt, then the evidence
+// (event) list below it. The gantt widget itself (gantt-widget.tsx) is a plain custom widget with no
+// dataMapping of its own - it reads holdsStore directly, same as evidence/summary - and switches to
+// a 'days-left only' list below 768px, so `narrow` only changes track spans here, not which widget
+// renders.
 export const initialReport = (narrow: boolean): AgReportState<UnheldRegistry> => ({
   pages: [
     {
       id: 'holds',
       widgets: {
         summary: { type: 'summary', dataMapping: {} },
-        grid: {
-          type: 'grid',
-          dataMapping: {
-            cols: narrow
-              ? [{ id: 'holds.creator' }, { id: 'holds.amount' }, { id: 'holds.release' }]
-              : [
-                  { id: 'holds.creator' },
-                  { id: 'holds.amount' },
-                  { id: 'holds.hold' },
-                  { id: 'holds.nextStep' },
-                  { id: 'holds.release' },
-                ],
-          },
-          format: { title: { enabled: true, text: 'held payments' }, style: { columnAutoSize: true } },
-        },
+        gantt: { type: 'gantt', dataMapping: {} },
         evidence: { type: 'evidence', dataMapping: {} },
       },
       widgetLayout: narrow
         ? {
             summary: { xTrack: 0, yTrack: 0, xSpan: 24, ySpan: 3 },
-            grid: { xTrack: 0, yTrack: 3, xSpan: 24, ySpan: 13 },
+            gantt: { xTrack: 0, yTrack: 3, xSpan: 24, ySpan: 13 },
             evidence: { xTrack: 0, yTrack: 16, xSpan: 24, ySpan: 26 },
           }
         : {
-            // Back to 14/10 (round 5): round 2's 16/8 rebalance fixed 1440px clipping by taking width
-            // from the evidence card, but the paypal-challenge peer's 1280 review (round 5) found that
-            // squeeze too far — an 8-track evidence column is ~270px at 1280, wrapping its badges to
-            // 2-3 words and clipping the timeline text mid-sentence. The grid no longer needs the extra
-            // width: "paid by" stacks its "in N days" hint under the date (ReleaseCell, round 4) instead
-            // of beside it, and "next step" stays ≤18 characters, so 14 tracks fit both without a
-            // horizontal scroll at 1440 or 1280 — verified by run.mjs's 1440/1280 checks, not just read.
-            summary: { xTrack: 0, yTrack: 0, xSpan: 14, ySpan: 3 },
-            grid: { xTrack: 0, yTrack: 3, xSpan: 14, ySpan: 13 },
-            // ySpan 36, not 24 (round 6, trimmed to 36 this round): the grid/summary column only
-            // uses 16 tracks, so the canvas was already taller than the evidence card — at 1280x720
-            // the card ended around y≈490 with ~230px of blank page below it, and Maya's 5-entry
-            // timeline scrolled inside that short card, cutting her last line mid-sentence
-            // (paypal-challenge peer, round 6). The extra tracks use that already-reserved space
-            // instead of widening the card past the grid/summary column, so all 5 entries plus the
-            // action row fit with no scroll at 1280 or 1440 (run.mjs's gridFits1280 asserts
-            // scrollHeight <= clientHeight for Maya's selection); overflow-y-auto on the <ol> stays
-            // as the safety net for any longer timeline. 37 (round 7) put the action row at y≈698,
-            // only 22px above the 720px viewport edge; 36 (this round, with content-start packing
-            // the <ol> instead of stretching its rows) gives the card one fewer track of height so
-            // the footer sits with real clearance above the edge.
-            evidence: { xTrack: 14, yTrack: 0, xSpan: 10, ySpan: 36 },
+            summary: { xTrack: 0, yTrack: 0, xSpan: 24, ySpan: 3 },
+            // 14 tracks (252px at the 18px studioCanvasRowHeight): gantt-widget.tsx's grid is
+            // domLayout="autoHeight" (00-ui-gantt round N, paypal-challenge peer), sizing itself to
+            // its real header (44px) plus rows (52px each, 76px for Tom's taller pre-tracking row) -
+            // 224px at its tallest, plus studioWidgetPadding's 20px (theme.ts) leaves this only an 8px
+            // strip below the last row instead of the 26px an unmeasured 15-track guess left. Sized to
+            // the taller pre-tracking state (every screenshot but workbench-tracked.png) rather than
+            // the shorter post-tracking one, so the grid is never taller than its own card and a row
+            // never clips; checked against run.mjs's gridFits1280/gridFits1440 either way (no cell or
+            // bar may sit past the card's own edge) rather than assumed from the day-column count alone.
+            gantt: { xTrack: 0, yTrack: 3, xSpan: 24, ySpan: 14 },
+            evidence: { xTrack: 0, yTrack: 17, xSpan: 24, ySpan: 18 },
           },
     },
   ],

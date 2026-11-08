@@ -11,7 +11,7 @@
 // I/O-free types and helpers from lib/holds.ts instead - see that file's own comment.
 
 import fixtures from '@/data/holds.json';
-import { currentOrderId, ensureFreshDemo } from './demo-reset';
+import { currentOrderId, draftForOrder } from './demo-reset';
 import { gmailConfigured, mailWith, type Mail } from './gmail';
 import { day, formatDate, RELEASE_RULES, release, type Evidence, type Fixture, type Hold, type Source } from './holds';
 import { getOrder, type Order } from './paypal';
@@ -69,13 +69,22 @@ async function oneHold(f: Fixture, now: number): Promise<{ hold: Hold; evidence:
     captureId: capture.id,
     trackingFound,
     threadId: fromBuyer[0]?.threadId,
+    draft: await draftForOrder(order.id),
+    // Gantt's dashed 'with tracking' bar (docs/ui-redesign/c-calendar-gantt.png): only set once
+    // nextStep below resolves to 'add tracking' (physical, untracked, a number already found in
+    // Gmail), so the UI shows the faster alternative only when it is an action the creator can
+    // actually take right now, not a hypothetical for a parcel with no known number yet.
+    withTrackingRelease:
+      kind === 'physical' && !tracked && trackingFound
+        ? release({ heldSince: capture.create_time, kind }, { ...state, tracked: true }, now)
+        : undefined,
   };
 
   let n = 0;
   const ev = (at: string, source: Source, text: string): Evidence => ({ id: `${f.id}-${n++}`, holdId: f.id, at, source, text });
   const evidence = [
-    ev(capture.create_time, 'paypal', `payment ${capture.id} captured, ${unit.amount.currency_code} ${unit.amount.value} (${capture.status.toLowerCase()})`),
-    ev(capture.create_time, 'simulated', `hold placed: ${f.hold}. The sandbox never withholds money, so this hold is simulated.`),
+    ev(capture.create_time, 'paypal', `payment captured, ${unit.amount.currency_code} ${unit.amount.value} (${capture.status.toLowerCase()})`),
+    ev(capture.create_time, 'simulated', `hold placed: ${f.hold}`),
     ...trackers.map((t) => ev(capture.create_time, 'paypal', `tracker ${t.id.split('-').pop()} on the order, ${t.status.toLowerCase()}`)),
     ...mail
       .toReversed()
@@ -104,7 +113,6 @@ function releaseText(kind: Hold['kind'], s: { confirmed: boolean; tracked: boole
 }
 
 export async function loadHolds(now = Date.now()) {
-  await ensureFreshDemo();
   const all = await Promise.all(fixtures.map((f) => oneHold(f, now)));
   return { holds: all.map((a) => a.hold), evidence: all.flatMap((a) => a.evidence), asOf: new Date(now).toISOString() };
 }

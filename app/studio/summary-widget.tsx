@@ -4,19 +4,13 @@
 // next: 6 Nov". Plain text, tabular-nums, no card of its own beyond the widget's shared frame.
 
 import { useSyncExternalStore } from 'react';
-import type { AgDefaultWidgetDefinition, AgWidgetData, AgWidgetDataFormat } from 'ag-studio';
-import type { AgRegistry, AgWidgetDefinition } from 'ag-studio-react';
-import { formatDate } from '@/lib/holds';
+import type { AgWidgetData, AgWidgetDataFormat } from 'ag-studio';
+import type { AgWidgetDefinition } from 'ag-studio-react';
+import { formatDate, gbp } from '@/lib/holds';
 import { holdsStore } from './store';
 
 type SummaryState = AgWidgetData<Record<string, never>, AgWidgetDataFormat<unknown>> & { type: 'summary' };
 export type SummaryDefinition = AgWidgetDefinition<'summary', SummaryState>;
-
-export interface UnheldSummaryRegistry extends AgRegistry {
-  widgets: readonly (AgDefaultWidgetDefinition | SummaryDefinition)[];
-}
-
-const gbp = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' });
 
 function SummaryWidget() {
   const { data } = useSyncExternalStore(holdsStore.subscribe, holdsStore.view, holdsStore.view);
@@ -34,7 +28,7 @@ function SummaryWidget() {
 
 export const summaryWidget: SummaryDefinition = {
   id: 'summary',
-  label: 'Summary',
+  label: 'summary',
   icon: { url: '/favicon.ico' },
   dataMapping: {},
   form: (form) => form.createDefaults({ dataMappingItems: [] }),

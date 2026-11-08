@@ -7,8 +7,14 @@
 // browser at all, even as dead code a client component never calls.
 import fixtures from '@/data/holds.json';
 
+// One GBP formatter for the whole app (the summary line, the gantt's pinned column, the evidence/
+// event-list header): data.ts wraps it as `{ format: gbp }` for ag-studio's own currencyFormat.
+export const gbp = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' });
+
 export type Source = 'simulated' | 'paypal' | 'gmail' | 'you' | 'estimate';
 export type Evidence = { id: string; holdId: string; at: string; source: Source; text: string };
+
+export type BuyerDraft = { id: string; to: string; subject: string; body: string; url: string };
 
 export type Hold = {
   id: string;
@@ -27,6 +33,11 @@ export type Hold = {
   captureId: string;
   trackingFound?: string;
   threadId?: string;
+  draft?: BuyerDraft;
+  // The release date if tracking were added today (physical, untracked, a number already found in
+  // Gmail): the gantt's dashed 'with tracking' bar (docs/ui-redesign/c-calendar-gantt.png). Only
+  // load-holds.ts's oneHold sets this, and only when nextStep is exactly 'add tracking'.
+  withTrackingRelease?: string;
 };
 
 export type Fixture = (typeof fixtures)[number];

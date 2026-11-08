@@ -11,6 +11,8 @@ import { existsSync, realpathSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
+import { gmail, paypal } from '../lib/api-clients.mjs';
+export { gmail }; // The runner and video recorder use the same explicit-env client.
 
 const APP = dirname(dirname(fileURLToPath(import.meta.url)));
 const FIXTURES = join(APP, 'data', 'holds.json');
@@ -25,19 +27,6 @@ export async function loadEnv() {
     );
   }
   return { ...fileEnv, ...process.env };
-}
-
-async function paypal(env, method, path, body) {
-  const auth = Buffer.from(`${env.PAYPAL_CLIENT_ID}:${env.PAYPAL_CLIENT_SECRET}`).toString('base64');
-  const tok = await (await fetch(`${env.PAYPAL_API_BASE}/v1/oauth2/token`, { method: 'POST', headers: { Authorization: `Basic ${auth}` }, body: new URLSearchParams({ grant_type: 'client_credentials' }) })).json();
-  const res = await fetch(`${env.PAYPAL_API_BASE}${path}`, {
-    method,
-    headers: { Authorization: `Bearer ${tok.access_token}`, 'Content-Type': 'application/json', 'PayPal-Request-Id': crypto.randomUUID() },
-    body: body && JSON.stringify(body),
-  });
-  const json = await res.json();
-  if (!res.ok) throw new Error(`paypal ${path} ${res.status}: ${JSON.stringify(json).slice(0, 300)}`);
-  return json;
 }
 
 async function readHolds() {
@@ -100,19 +89,6 @@ const DEMO_MAIL = [
   { id: 'H2', from: 'me', to: 'Jordan Blake <jordan.blake@example.com>', labels: ['SENT'], subject: 'Your enamel pins are on the way',
     body: 'Hi Jordan,\n\nYour pin set went out today with Royal Mail Tracked 48. Tracking number: RM482913576GB.\n\nThanks for your order!' },
 ];
-
-let gmailToken;
-// Shared Gmail REST helper, env explicit (not read internally) so every caller — seedMail here,
-// and run.mjs's own draft cleanup/listing checks — uses the same env it was already given.
-export async function gmail(env, path, init) {
-  const tok = gmailToken ??= await (await fetch('https://oauth2.googleapis.com/token', { method: 'POST', body: new URLSearchParams({
-    client_id: env.GOOGLE_OAUTH_CLIENT_ID, client_secret: env.GOOGLE_OAUTH_CLIENT_SECRET, refresh_token: env.GMAIL_REFRESH_TOKEN, grant_type: 'refresh_token' }) })).json();
-  if (!tok.access_token) throw new Error(`gmail token: ${tok.error}`);
-  const res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/${path}`, { ...init, headers: { Authorization: `Bearer ${tok.access_token}`, 'Content-Type': 'application/json' } });
-  const json = res.status === 204 ? {} : await res.json();
-  if (!res.ok) throw new Error(`gmail ${path.split('?')[0]} ${res.status}: ${json.error?.message}`);
-  return json;
-}
 
 export async function seedMail(env) {
   for (const m of DEMO_MAIL) {

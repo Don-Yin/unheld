@@ -1,7 +1,19 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-<path d="M17 9h30M17 55h30" stroke="#c98a2b" stroke-width="5" stroke-linecap="round"/>
-<path d="M21 12c0 11 9 14 9 20s-9 9-9 20h22c0-11-9-14-9-20s9-9 9-20z" fill="#f4f7fb" fill-opacity=".14" stroke="#8fa3ba" stroke-width="2.6" stroke-linejoin="round"/>
-<path d="M25.5 20h13c-1.5 4-6.5 6-6.5 9-0-3-5-5-6.5-9z" fill="#f2b84b"/>
-<path d="M32 30v14" stroke="#f2b84b" stroke-width="1.6" stroke-dasharray="2 2"/>
-<path d="M23.5 51c1.5-5 5-7.5 8.5-7.5s7 2.5 8.5 7.5z" fill="#f2b84b"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Ring of 8 short ticks (lucide's own Loader spokes, shortened to read as a clock face rather
+       than a loading spinner) around a pound sign: the hold mark for unheld (00-ui-gantt round N,
+       paypal-challenge peer), replacing an hourglass that read as generic "loading" rather than the
+       specific held-payment amount. Kept identical to app/app/studio/icons.tsx's inline HoldIcon -
+       edit both together. -->
+  <path d="M12 2v2" />
+  <path d="m17.7 6.3 1.4-1.4" />
+  <path d="M20 12h2" />
+  <path d="m17.7 17.7 1.4 1.4" />
+  <path d="M12 20v2" />
+  <path d="m6.3 17.7-1.4 1.4" />
+  <path d="M4 12H2" />
+  <path d="m6.3 6.3-1.4-1.4" />
+  <g transform="translate(2.3 0.9) scale(0.8333)">
+    <path d="M17 18a2 2 0 01-2 2H5a3 3 0 003-3V8a4 4 0 018 0" vector-effect="non-scaling-stroke" />
+    <path d="M6 12h7" vector-effect="non-scaling-stroke" />
+  </g>
 </svg>

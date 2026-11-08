@@ -48,71 +48,23 @@ body {
   margin-left: 20px;
 }
 
-/*
- * The AI panel's markdown renders each per-fact `source` as a `<code>` tag; the renderer's own
- * `.ag-studio-rich-text code { font-family: Monaco, Menlo, Consolas, monospace; ... }` rule is
- * unlayered CSS, so it beats every one of Tailwind's `@layer utilities` classes on the same
- * properties (font, size, padding, border, radius, colour) regardless of class-list order — matching
- * class names alone still rendered a monospace code chip (round 2's first finding). A first fix
- * (round 3) forced the same values with a hidden probe span plus inline `!important` styles; round 3
- * review asked for one CSS rule instead. This rule's own selector repeats `.ag-studio-rich-text code`
- * and adds a class, so by selector specificity alone — two classes plus one element vs. the library's
- * one class plus one element — it outranks the library rule with no `!important` and no runtime
- * probe. `workbench.tsx`'s decorate() sets the `unheld-badge` class and a `data-badge-source`
- * attribute (one of evidence-widget.tsx's `Source` keys); each variant's colours are the same theme
- * tokens as evidence-widget.tsx's BADGE map, so there is still one definition of each badge colour,
- * just written in CSS instead of read back from a probe.
- */
-.ag-studio-rich-text code.unheld-badge {
+/* One quiet source label for both evidence and Studio markdown. The more specific selector
+   overrides Studio's unlayered code style without inline styles or !important. */
+.source-badge,
+.ag-studio-rich-text code.source-badge {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px;
+  border: 1px solid var(--pp-border);
+  border-radius: 4px;
+  background: var(--pp-surface);
+  color: var(--pp-muted);
   font-family: var(--pp-font);
   font-size: 0.75rem;
   line-height: 1rem;
-  padding: 0 0.375rem;
-  border-width: 1px;
-  border-style: solid;
-  border-radius: 0.25rem;
-  background-color: var(--pp-surface);
-}
-.ag-studio-rich-text code.unheld-badge[data-badge-source='simulated'] {
-  color: var(--pp-warning);
-  border-color: var(--pp-warning);
-}
-.ag-studio-rich-text code.unheld-badge[data-badge-source='paypal'] {
-  color: var(--pp-blue);
-  border-color: var(--pp-blue);
-}
-.ag-studio-rich-text code.unheld-badge[data-badge-source='gmail'] {
-  color: var(--pp-success);
-  border-color: var(--pp-success);
-}
-.ag-studio-rich-text code.unheld-badge[data-badge-source='estimate'] {
-  color: var(--pp-muted);
-  border-color: var(--pp-border);
-}
-.ag-studio-rich-text code.unheld-badge[data-badge-source='you'] {
-  color: #fff;
-  border-color: var(--pp-navy);
-  background-color: var(--pp-navy);
-}
-
-/*
- * "next step": AG Grid's autosize clones the currently-rendered cell into an off-DOM `<form>` and
- * reads its `offsetWidth` (packages/ag-grid-community's autoWidthCalculator.ts) with
- * autoSizePadding forced to 0 here, so the column is set to that exact integer width. That clone
- * is laid out outside the real scrolling row container, and a DOM probe (round 4) found the real
- * cell's own text came out a fraction of a pixel wider than the clone's measured width — tried at
- * several padding sizes up to pr-32, which still left 'confirm with buyer' clipped in the 1440
- * screenshot even after the clone/real gap. The measurement
- * and the real render don't quite agree, so no amount of CSS padding on the cell's own content can
- * add real slack: padding is part of what gets cloned and measured too, so it moves the target, not
- * the margin. The fix instead turns off the one property that makes a sub-pixel shortfall visible:
- * this column is already sized to fit its content (columnAutoSize), so clipping it at all serves no
- * purpose here. By selector specificity alone — an attribute selector plus two classes vs. the grid
- * theme's class-only cell rule — this one rule outranks it with no `!important`.
- */
-.ag-cell.ag-cell-value[col-id='holds.nextStep'] {
-  overflow: visible;
-  text-overflow: clip;
+  vertical-align: middle;
 }
 
 /*
@@ -122,14 +74,12 @@ body {
  * AgAiHarnessConfig exposes no icon option for it at all — so there is no prop to pass here. A
  * `::before` pseudo-element is the only way in: `mask-image` loads public/icons/send.svg (the same
  * lucide "send" shape the rest of the app would use via lucide-react) and `background-color:
- * currentColor` paints it in the button's own text colour, the same pattern `.ag-studio-rich-text
- * code.unheld-badge` above already uses to reach into this renderer's DOM. `gap` between the icon
- * and the "send" label matches evidence-widget.tsx's ICON_GAP (1.5 * 4px = 6px), not a new value.
+ * currentColor` paints it in the button's own text colour. The 8px gap matches the evidence actions.
  */
 .ag-studio-ai-assistant-send-button {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 .ag-studio-ai-assistant-send-button::before {
   content: '';
@@ -207,6 +157,20 @@ body {
   mask-image: url('/icons/download.svg');
 }
 
+/*
+ * 00-ui-gantt round N (paypal-challenge peer): AG Studio's own `.ag-studio-layout-widget` (every
+ * page widget - the gantt, the evidence card) carries `--ag-studio-layout-widget-resize-border-
+ * color`, a resize-handle affordance meant for edit mode, but its `:hover` rule sets that colour
+ * unconditionally (ag-studio's layoutWidget CSS), with no gate on whether editing is even reachable.
+ * workbench.tsx renders AgStudio with `mode="view"` only - there is no edit mode, no resize handle
+ * ever usable - so this hover ring is pure leftover: just moving the mouse over a widget (e.g.
+ * Playwright's click() on a gantt row, or a real user reading the page) painted a blue ring 10px
+ * outside the widget's own padded card (theme.ts's studioWidgetPadding), on whichever widget the
+ * cursor last touched (gantt and evidence both show it in workbench-selected.png / workbench-
+ * tracked.png) - well past any actual selection, and nowhere near the "selected widget" affordance
+ * its colour choice (studioWidgetResizeBorderColor, theme.ts) implies. Dropped rather than moved to
+ * hug the card: it has no real meaning for this view-only page to hug.
+ */
 
 /*
  * PayPal design tokens: the single source of truth for the dashboard shell (through the
@@ -252,10 +216,36 @@ body {
   --color-pp-canvas: var(--pp-canvas);
   --color-pp-surface: var(--pp-surface);
   --color-pp-border: var(--pp-border);
+  --color-pp-gridline: var(--pp-gridline);
   --color-pp-ink: var(--pp-ink);
   --color-pp-muted: var(--pp-muted);
   --color-pp-success: var(--pp-success);
   --color-pp-warning: var(--pp-warning);
   --color-pp-danger: var(--pp-danger);
   --font-paypal: var(--pp-font);
+}
+
+/* 00-ui-gantt round N (paypal-challenge peer): ag-studio's layout widget draws its resize-handle
+   ring from --ag-studio-layout-widget-resize-border-color, set on two independent rules - :hover
+   (mouse over the widget) and .ag-studio-layout-widget-selected, a class the layout system toggles
+   on click/focus regardless of the mouse, to var(--ag-accent-color) (this app's blue). Overriding only
+   :hover left the selected-class rule painting the same ring the moment a widget's content (e.g. a
+   gantt row) is clicked - the actual leftover seen here, not just hover. workbench.tsx renders
+   mode="view" only, so neither affordance is ever for anything: both are neutralised. */
+.ag-studio-layout-widget:hover,
+.ag-studio-layout-widget.ag-studio-layout-widget-selected {
+  --ag-studio-layout-widget-resize-border-color: transparent !important;
+}
+
+/* gantt-widget.tsx's day columns: see that file's DayHeader and BarCell comments. AG Grid's own 8px
+   header-cell padding left "today"'s pill nowhere to render (clipped to "toda"); gantt-bar-cell lets
+   a bar's label render outside the bar, into the day columns its colSpan already leaves empty, when
+   it doesn't fit inside - both would otherwise clip at `.ag-header-cell`'s and `.ag-cell`'s own
+   default `overflow: hidden`. */
+.ag-header-cell.gantt-day-header {
+  padding-left: 2px !important;
+  padding-right: 2px !important;
+}
+.ag-cell.gantt-bar-cell {
+  overflow: visible !important;
 }
