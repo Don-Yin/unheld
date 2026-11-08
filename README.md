@@ -1,29 +1,34 @@
 <p align="center"><img src="docs/banner.png" alt="unheld" width="100%"></p>
 
-Unheld is a workbench for an independent creator whose PayPal payment is held. It reads the
-creator's held payments into one grid, shows the evidence for the selected payment next to it
-(the PayPal order and tracker, and the creator's own Gmail thread with the buyer where available),
-and estimates when the money arrives against PayPal's release rules. An AI assistant can explain a
-hold, add a shipment tracker, or draft (never send) a buyer reply.
+unheld helps independent creators answer "when does the creator get paid?" It shows held PayPal
+payments in a calendar-gantt view, with the selected payment's evidence timeline below. An assistant
+can explain an estimate, add tracking to a sandbox order, or save an unsent Gmail draft.
+
+The idea came from 3,655 public posts about money problems, including 268 relevant held-payment
+posts. The demo's bars show temporary hold only (111), limited or banned (78), support unreachable
+(38), and needs it for rent, food or bills (21). Only 23 posts report a fix; others may not have followed up.
 
 ![Unheld workbench](docs/screenshot.png)
 
 ## Demo
 
-- Hosted: `<TO FILL: Render URL>`. The access code is given in the Devpost testing instructions.
-- Video: `<TO FILL: YouTube URL>`
+- Hosted at <https://unheld.onrender.com>. The access code is in the Devpost testing instructions.
+- Video `<TO FILL: YouTube URL>`
 
 ## How it works
 
-- One AG Studio grid of held payments, each with a next step and an estimated release date.
-- An evidence widget next to the grid, every line labelled by source: PayPal, Gmail, simulated hold, or policy estimate.
-- An AI assistant with three tools: `get_hold_evidence`, `add_tracking`, and `draft_buyer_reply`, which never sends.
-- Release dates follow PayPal's published hold-release rules: about 1 day after delivery, 7 days after a service is marked complete, or within 21 days.
-- Holds are simulated, because the PayPal sandbox never withholds money; the interface marks them as such.
+- Calendar-gantt rows show creator avatars, amounts, paid-by estimates and hold bars. A dashed tracking bar previews a shorter wait; phones show a days-left list.
+- The evidence timeline below labels each fact `paypal`, `simulated`, `gmail`, `you`, or `estimate`.
+- The assistant uses `get_hold_evidence`, `add_tracking`, and `draft_buyer_reply`. Tracking writes to the sandbox order; Gmail drafts stay unsent until the creator chooses to send them.
+- The live app computes release estimates from today's date under three rules, about 1 day after confirmed delivery, 7 days after the creator marks a digital service complete, or 21 days at the latest.
+- The recorded demo gives Maya 13 Nov after her manual PayPal step, Tom about 9 Nov after tracking, and Priya 27 Nov at the latest. Priya still needs the buyer's reply.
+- Holds are simulated and labelled because the PayPal sandbox never withholds money. Dates are estimates.
 
 ## How it uses AG Studio
 
-I built a custom evidence widget, `app/studio/evidence-widget.tsx`, with source badges and a crossfade between payments. I fed our own Tailwind tokens into Studio's theme in `app/studio/theme.ts`. I wired three custom tools into Studio's built-in assistant in `app/studio/ai.ts`: `get_hold_evidence`, `add_tracking`, and `draft_buyer_reply`. The assistant answers "when do I get paid?" per payment from real PayPal and Gmail evidence.
+The calendar in `app/studio/gantt-widget.tsx` uses AG Grid as a custom AG Studio widget. The evidence
+widget adds source badges and a selection crossfade. Both use our Tailwind theme tokens, and the
+three tools in `app/studio/ai.ts` ground Studio's built-in assistant in PayPal sandbox and Gmail evidence.
 
 ## Run locally
 
