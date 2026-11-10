@@ -1,26 +1,7 @@
-// Demo reset: give every judge the same fresh starting state instead of the sandbox state the
-// previous judge left behind.
-//
-// The 'add tracking' action (app/api/holds/[id]/[action]/route.ts) writes a real tracker onto the
-// sandbox order lib/holds.ts reads back, and PayPal has no call to remove one, so without a reset
-// the first judge to track Tom's parcel removes his "18 days sooner" moment for every judge after
-// them on this server. The 'create draft reply' action leaves a real Gmail draft in the creator's
-// mailbox, and those pile up over a week of judging.
-//
-// Reset creates brand-new sandbox orders (scripts/seed.mjs's own order-creation logic, reused not
-// re-implemented) and deletes only the Gmail drafts this app itself created since the last reset -
-// never one the creator wrote by hand. State lives in memory only: Render's disk is ephemeral, so
-// a write to data/holds.json surviving a restart cannot be relied on (seed.mjs's own --fresh
-// comment makes the same point) - a fresh process must be able to reach a clean state on its own,
-// not by reading an order id back off disk.
-//
-// On globalThis, not a module-level `let`: Next.js compiles instrumentation.ts, page.tsx and each
-// route handler ([id]/[action], holds, reset) into separate bundles, each getting its own copy of
-// a module-scope variable even though they `import` the "same" file - a run.mjs run with a plain
-// module-level singleton here logged four independent resets (one per entry point) instead of one,
-// and the grid, the track action and the reset button each read a different sandbox order for the
-// same hold. globalThis is the one thing every bundle in the same Node process actually shares
-// (the same pattern Prisma's own Next.js docs use for its client singleton, for the same reason).
+// Demo reset: every judge starts from the same state. PayPal cannot remove a tracker and Gmail
+// drafts pile up, so a reset creates fresh sandbox orders (seed.mjs's logic) and deletes only the
+// drafts this app created. State is in memory (Render's disk is ephemeral) and on globalThis,
+// because Next.js bundles each route separately and a module-level variable would not be shared.
 
 import { freshOrderIds } from '@/scripts/seed.mjs';
 import { deleteDraft, readDraft } from './gmail';
@@ -39,8 +20,7 @@ type State = {
 };
 
 const KEY = Symbol.for('unheld.demo-reset');
-// SAFETY: globalThis has no index signature for an arbitrary Symbol key; this module is the only
-// reader/writer of KEY, and every access goes through `state` below, so the shape is ours to define.
+// SAFETY: only this module reads or writes KEY, so the shape is ours to define.
 const g = globalThis as unknown as { [KEY]?: State };
 const state: State = (g[KEY] ??= { lastManualAttempt: 0, createdDraftIds: new Set(), draftsByOrder: new Map(), actionsInFlight: new Set() });
 

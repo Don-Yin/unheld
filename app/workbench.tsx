@@ -1,7 +1,7 @@
 'use client';
 
-// The whole interface: one AG Studio page (held-payments grid + evidence widget) and Studio's own
-// assistant. No sidebar, no chat panel of our own.
+// The whole interface: one AG Studio page (summary, calendar gantt, evidence) and Studio's own
+// assistant.
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { AgStudioAiModule } from 'ag-studio';
@@ -25,8 +25,7 @@ const localeText = { panelTitleAi: 'ai assistant', aiNewChat: 'new chat', aiNewT
 type Props = { initial: HoldsData; licenseKey?: string; aiModels?: string[] };
 
 // View mode with only the assistant beside the page.
-// SAFETY: the types allow only 'filters' in view mode, but ag-studio 3.0's PanelService.updatePanels
-// reads panels[mode] as given and gates 'ai' only on the `ai` prop; run.mjs checks the panel answers.
+// SAFETY: the types allow only 'filters' in view mode, but ag-studio 3.0 accepts 'ai' at runtime.
 const panels = { view: { left: ['ai'], right: [] } } as unknown as AgPanelConfig;
 
 export function Workbench({ initial, licenseKey, aiModels }: Props) {

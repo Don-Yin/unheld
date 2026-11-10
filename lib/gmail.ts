@@ -27,15 +27,8 @@ type RawMessage = {
 };
 
 /**
- * Messages to or from one address, newest first, each piece of evidence shown once. Unsent drafts
- * are not evidence, so they are left out.
- *
- * Dedupe key is (from, subject), not Message-ID: every message carries *some* Message-ID header
- * (if a raw insert's own id is malformed, Gmail silently replaces it with a generated one - see
- * scripts/seed.mjs's msgId comment), so it is always present and never collapses a duplicate by
- * itself. Content identity is what distinguishes a genuinely new reply from a repeat seed insert in
- * this app, where each buyer's one confirmation or tracking mail has a fixed subject. Newest-first
- * search order means the first of a duplicate pair is kept.
+ * Messages to or from one address, newest first, without unsent drafts. Duplicates are dropped
+ * by (from, subject), keeping the newest.
  */
 export async function mailWith(address: string, max = 10): Promise<Mail[]> {
   const q = encodeURIComponent(`(from:${address} OR to:${address}) -in:drafts`);

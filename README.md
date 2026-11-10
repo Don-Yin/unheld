@@ -8,12 +8,12 @@ The idea came from 3,655 public posts about money problems, including 268 releva
 posts. The demo's bars show temporary hold only (111), limited or banned (78), support unreachable
 (38), and needs it for rent, food or bills (21). Only 23 posts report a fix; others may not have followed up.
 
-![Unheld workbench](docs/screenshot.png)
-
 ## Demo
 
-- Hosted at <https://unheld.onrender.com>. The access code is in the Devpost testing instructions.
-- Video <https://youtu.be/3JerLuNG0JU>
+[![Watch the 2:58 demo on YouTube](docs/video-thumbnail.png)](https://youtu.be/3JerLuNG0JU)
+
+Hosted at <https://unheld.onrender.com>; the access code is in the Devpost testing instructions.
+Screenshots, research figures and a map of the code are in [`docs/`](docs/README.md).
 
 ## How it works
 

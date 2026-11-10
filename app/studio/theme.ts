@@ -1,7 +1,5 @@
-// AG Studio theme for the PayPal dashboard. Every value points at a design token from
-// app/globals.css, the same variables the shell's Tailwind classes use, so Studio renders as
-// part of the page rather than a component embedded in it: change a token there and the shell,
-// widgets, grids and charts all follow.
+// AG Studio theme. Every value is a design token from app/globals.css, shared with the shell's
+// Tailwind classes, so Studio reads as part of the page.
 
 import { themeQuartz } from 'ag-grid-community';
 import { studioTheme } from 'ag-studio';
@@ -17,18 +15,10 @@ const palette = Object.fromEntries(
 );
 
 export const agStudioPayPalTheme = studioTheme.withParams({
-  // Studio pins both its own root box and the 24-track canvas to 600px/720px floors by default, so a
-  // phone-width container still demands that much and the whole page scrolls as one block instead of
-  // each widget's own content; let both shrink to real phone widths.
+  // Drop Studio's 600px/720px width floors so it fits phones.
   studioMinWidth: 320,
   studioCanvasMinWidth: 320,
-  // 300 instead of the 350 default (round 5): the paypal-challenge peer's 1280 review found the
-  // held-payments grid's "paid by" column clipped ("11 N") once the evidence card was widened back
-  // to 10/24 tracks (data.ts) — the ai assistant panel's own width was the one thing competing for
-  // the same 1280px that no track ratio could fix. 300px is still plenty for the chips and replies
-  // (ag-studio's own default panel width, studioPanelWidth, is 210); the freed ~50px goes to the
-  // 24-track canvas at every viewport width. run.mjs's gridFits1280/gridFits1440 checks confirmed
-  // this fails (cellsOnScreen: false) at the old 350px default and passes at 300.
+  // 300px instead of 350 leaves the calendar enough width at 1280px.
   studioAiPanelWidth: 300,
 
   // Shared by Studio's UI, grids and charts.
@@ -99,7 +89,7 @@ export const agStudioPayPalTheme = studioTheme.withParams({
   gridHeaderTextColor: token('muted'),
   gridHeaderFontWeight: 600,
   gridHeaderFontSize: 13,
-  // >= 44px: the creator cell is the row-selection touch target (ui-critique.md #10).
+  // >= 44px: the creator cell is a touch target.
   gridRowHeight: 44,
   gridRowBorder: line('gridline'),
   gridHeaderRowBorder: line('border'),
@@ -116,10 +106,7 @@ export const agStudioPayPalTheme = studioTheme.withParams({
   ...palette,
 });
 
-// gantt-widget.tsx's calendar gantt is a raw AG Grid (ag-studio's own grid widget has no gridOptions
-// passthrough for colSpan/custom headers — see that file's header comment), so it needs AG Grid's
-// own Theming API rather than studioTheme's grid* params above. Same tokens, so it still reads as
-// part of the page, not a second grid style.
+// The gantt is a raw AG Grid, so it uses AG Grid's Theming API with the same tokens.
 export const agGridPayPalTheme = themeQuartz.withParams({
   accentColor: token('blue'),
   backgroundColor: token('surface'),

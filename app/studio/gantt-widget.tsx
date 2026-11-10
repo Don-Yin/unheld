@@ -1,17 +1,11 @@
 'use client';
 
-// The calendar gantt (docs/ui-redesign/c-calendar-gantt.png, Don's chosen version C): one row per
-// held payment, a round avatar + creator/item/paid-by pinned on the left, and a bar spanning the
-// days it has been (or will be) on hold - a diamond where the hold started, a flag where PayPal's
-// release estimate falls. A physical hold still waiting on a tracking number (next step "add
-// tracking") also shows a shorter dashed pill above its bar: the faster release date if tracking
-// were added today (lib/load-holds.ts's withTrackingRelease).
+// Calendar gantt: one row per held payment, a bar from the hold start (diamond) to the estimated
+// release (flag). A physical hold still waiting on tracking also shows a dashed pill with the
+// earlier release it would get if tracking were added today.
 //
-// A raw AG Grid (ag-grid-react), not ag-studio's own grid widget: AgGridWidgetOptions (that
-// widget's own options type) exposes no gridOptions passthrough at all - no colSpan, no custom
-// header component, no getRowHeight - which a gantt needs for its bars and per-day columns.
-// Registered as a plain custom widget (comp, dataMapping: {}), exactly like evidence-widget.tsx's
-// own widget: it reads holdsStore directly instead of going through ag-studio's data catalog.
+// A raw AG Grid rather than ag-studio's grid widget, which has no colSpan, custom header or
+// getRowHeight. Registered as a plain custom widget that reads holdsStore directly.
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { AllCommunityModule, ModuleRegistry, type ColDef, type ColSpanParams } from 'ag-grid-community';
@@ -31,31 +25,26 @@ export type GanttDefinition = AgWidgetDefinition<'gantt', GanttState>;
 
 type Row = Hold & {
   selected: boolean;
-  startDay: string; // the day column this row's bar starts in (colSpan's anchor)
-  span: number; // whole days from startDay to release, inclusive
+  startDay: string; // the day column the bar starts in (colSpan anchor)
+  span: number; // days from startDay to release, inclusive
   releaseLabel: string;
   relativeLabel: string;
   trackingSpan?: number;
-  trackingLabel?: string; // "with tracking: 7 Nov"
+  trackingLabel?: string;
 };
 
 const DAY = 86_400_000;
+const CREATOR_COL_WIDTH = 260;
+const MIN_DAY_COL_WIDTH = 24;
 const dayColId = (iso: string) => `d:${iso}`;
 
-/** Every calendar day from startIso to endIso inclusive, both already whole-day strings. */
 function dateRange(startIso: string, endIso: string): string[] {
   const out: string[] = [];
   for (let t = Date.parse(startIso); t <= Date.parse(endIso); t += DAY) out.push(new Date(t).toISOString().slice(0, 10));
   return out;
 }
 
-/**
- * Pinned left column: avatar, creator (the row-selection button - only the name, so
- * run.mjs's relativeDays check can still read the creator from `button.textContent` the same way
- * it did before this redesign), item, and the paid-by date with its muted relative hint (the exact
- * shape evidence-widget.tsx's old ReleaseCell used, just relocated: the gantt has no separate
- * "paid by" column once the bar itself shows the release visually).
- */
+/** Pinned column: avatar, creator (the selection button), amount, paid-by date. */
 function CreatorCell({ data: row }: CustomCellRendererProps<Row>) {
   if (!row) return null;
   return (
@@ -70,10 +59,7 @@ function CreatorCell({ data: row }: CustomCellRendererProps<Row>) {
         >
           {row.creator}
         </button>
-        {/* Amount only, not "{row.item} \u00b7 {amount}" (00-ui-gantt round N, paypal-challenge
-            peer): the item title is already in the detail header below (EvidenceWidget's `<h3>`),
-            and at this column's width the combined string truncated to e.g. "Twitch emote set \u00b7
-            \u00a36\u2026", hiding the amount entirely - the one fact this line alone needs to add. */}
+        {/* Amount only: the item title would truncate it away at this width. */}
         <span className="truncate text-xs text-pp-muted">{gbp.format(row.amount)}</span>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-0.5 text-right leading-none tabular-nums">
@@ -85,19 +71,9 @@ function CreatorCell({ data: row }: CustomCellRendererProps<Row>) {
 }
 
 /**
- * One day column's cell. Only the row's own start-day column ever renders content (its colSpan
- * covers the rest of the bar, see colDefs below): a diamond where the hold started, the next-step
- * label, a flag at the release date. `data-testid`s so run.mjs can check the feature is present
- * without depending on exact styling (00-ui-gantt).
- *
- * The label (gantt-bar-label) measures its own overflow (scrollWidth vs. clientWidth) instead of
- * just truncating: Tom's "wait for delivery" bar is only 1 day wide, so the label never fits inside
- * it at any column width run.mjs checks, and `truncate`'s ellipsis alone read as "wait for de\u2026"
- * (00-ui-gantt round N, paypal-challenge peer). When it overflows, the inside label goes invisible
- * (kept in the layout, not removed, so the ResizeObserver below keeps measuring it if the column
- * later widens) and the same text reappears outside the bar, after the flag, in the day columns the
- * colSpan already leaves empty for this row - gantt-bar-cell's own overflow: visible (globals.css)
- * is what lets that second span actually render past its cell's nominal edge instead of clipping.
+ * Only the row's start-day cell renders (its colSpan covers the bar). When the next-step label
+ * does not fit inside the bar, it is hidden there and shown after the flag instead; the hidden
+ * copy stays in the layout so the ResizeObserver can tell when it fits again.
  */
 function BarCell({ data: row, iso }: CustomCellRendererProps<Row> & { iso: string }) {
   const labelRef = useRef<HTMLSpanElement>(null);
@@ -141,12 +117,7 @@ function BarCell({ data: row, iso }: CustomCellRendererProps<Row> & { iso: strin
   );
 }
 
-/** Day header: day number, short month, and a "today" pill under the current date's column.
-    The pill is text-[7px]/px-1 (not the 9px/px-1.5 a normal badge would use) and the colDef below
-    gives these headers their own `gantt-day-header` class (globals.css overrides AG Grid's own
-    8px header-cell padding to 2px) - without both, "today" measured wider than the day columns'
-    ag-header-cell (which clips its own overflow), so it rendered clipped to "toda" at every width
-    run.mjs checks (00-ui-gantt round N, paypal-challenge peer). */
+/** Day number, month and a "today" pill, sized to fit the narrowest day column. */
 function DayHeader({ iso, isToday }: CustomHeaderProps<Row> & { iso: string; isToday: boolean }) {
   const d = new Date(iso);
   return (
@@ -158,9 +129,7 @@ function DayHeader({ iso, isToday }: CustomHeaderProps<Row> & { iso: string; isT
   );
 }
 
-/** Phone width: "days-left only" (00-ui-gantt) - the full calendar has no room to read at 390px,
-    so each row collapses to its avatar, name and the same relative hint the wide bar's paid-by
-    column shows, in one line. */
+/** Phone width: one line per payment with the days left. */
 function DaysLeftList({ rows }: { rows: Row[] }) {
   return (
     <ul className="flex h-full flex-col divide-y divide-pp-gridline overflow-y-auto">
@@ -181,8 +150,7 @@ function DaysLeftList({ rows }: { rows: Row[] }) {
   );
 }
 
-/** Same narrow breakpoint workbench.tsx uses for ag-studio's own layout, so the gantt switches to
-    the days-left list at the same width the page as a whole switches to its stacked layout. */
+/** Same 768px breakpoint as the workbench layout. */
 function useNarrow() {
   const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
   useEffect(() => {
@@ -193,19 +161,12 @@ function useNarrow() {
   return narrow;
 }
 
-const CREATOR_COL_WIDTH = 260;
-const MIN_DAY_COL_WIDTH = 24;
-
 function GanttWidget() {
   const { data, selected } = useSyncExternalStore(holdsStore.subscribe, holdsStore.view, holdsStore.view);
   const narrow = useNarrow();
   const hasHolds = Boolean(data?.holds.length);
-  // AG Grid's `flex: 1` + sizeColumnsToFit() (tried first) never reliably narrowed the day columns
-  // to the card's actual available width once the ai panel took its own 300px (run.mjs's
-  // gridFits1280 kept showing cells past the grid's own right edge, even forcing the recompute on
-  // both grid-ready and container resize). Measuring the wrapper directly and setting each day
-  // column's width in px removes that race entirely: the sum of day-column widths can never exceed
-  // what was just measured, because nothing but this effect decides it.
+  // Day columns get explicit pixel widths from the measured wrapper: AG Grid's flex sizing
+  // overflowed the card once the assistant panel took its width.
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [wrapperWidth, setWrapperWidth] = useState(0);
   useEffect(() => {
@@ -220,14 +181,13 @@ function GanttWidget() {
     if (!data) return [];
     return data.holds.map((h) => {
       const startDay = day(h.heldSince);
-      const endDay = day(h.release);
       const relDays = daysUntil(h.release, data.asOf);
       const trackingEndDay = h.withTrackingRelease ? day(h.withTrackingRelease) : undefined;
       return {
         ...h,
         selected: h.id === selected,
         startDay,
-        span: daysUntil(endDay, startDay) + 1,
+        span: daysUntil(day(h.release), startDay) + 1,
         releaseLabel: formatDate(h.release),
         relativeLabel: relDays <= 0 ? 'today' : relDays === 1 ? 'tomorrow' : `in ${relDays} days`,
         trackingSpan: trackingEndDay ? daysUntil(trackingEndDay, startDay) + 1 : undefined,
@@ -244,9 +204,6 @@ function GanttWidget() {
     return dateRange(minDay, maxDay);
   }, [rows]);
 
-  // Floors at MIN_DAY_COL_WIDTH rather than shrinking further: a day this narrow still only needs to
-  // show its number (DayHeader) or sit inside a multi-day bar (BarCell's own label fits the full
-  // span's width, not one day's), so there is no narrower-still content to make room for.
   const dayColWidth = columns.length ? Math.max(MIN_DAY_COL_WIDTH, Math.floor((wrapperWidth - CREATOR_COL_WIDTH) / columns.length)) : MIN_DAY_COL_WIDTH;
 
   const colDefs: ColDef<Row>[] = useMemo(() => {
@@ -264,18 +221,11 @@ function GanttWidget() {
       headerComponent: DayHeader,
       headerComponentParams: { iso, isToday: iso === todayIso },
       width: dayColWidth,
-      // AG Grid's own default minWidth is wider than this gantt's day columns ever need to be: with
-      // none set, setColumnWidths below silently capped every width request at that default instead
-      // of applying dayColWidth, which is exactly what left day columns past the grid's own right
-      // edge at 1280px (round 9's gridFits1280 cellsOnScreen failure).
-      minWidth: MIN_DAY_COL_WIDTH,
+      minWidth: MIN_DAY_COL_WIDTH, // AG Grid's default minWidth would cap dayColWidth
       resizable: false,
       sortable: false,
-      // DayHeader's own comment: frees the column's full width for the custom header instead of
-      // AG Grid's default 8px/side header padding.
-      headerClass: 'gantt-day-header',
-      // gantt-bar-cell: overflow: visible (globals.css), so BarCell's outside label can render past
-      // this cell's own nominal width into the empty day columns the colSpan leaves beside it.
+      headerClass: 'gantt-day-header', // tighter header padding (globals.css)
+      // gantt-bar-cell has overflow: visible so the outside label can extend past the cell.
       cellClass: iso === todayIso ? 'bg-pp-highlight/60 gantt-bar-cell' : 'gantt-bar-cell',
       colSpan: (params: ColSpanParams<Row>) => (params.data?.startDay === iso ? params.data.span : 1),
       cellRenderer: BarCell,
@@ -287,14 +237,8 @@ function GanttWidget() {
   if (!data?.holds.length) return <p className="grid h-full place-items-center text-sm text-pp-muted">no held payments</p>;
   if (narrow) return <DaysLeftList rows={rows} />;
 
+  // No h-full: domLayout="autoHeight" sizes the grid to its rows.
   return (
-    // No h-full (00-ui-gantt round N, paypal-challenge peer): domLayout="autoHeight" below sizes the
-    // grid itself to its header plus rows, not to whatever height data.ts's track grid hands this
-    // widget - h-full would just force that same fixed height straight back onto the wrapper and
-    // reopen the empty strip autoHeight exists to close. data.ts's gantt ySpan is tuned to this
-    // natural height for Tom's taller (76px) pre-tracking row, the tallest state the grid renders;
-    // the shorter post-tracking state (52px, see workbench-tracked.png) leaves a little more of that
-    // strip rather than ever clipping a row.
     <div ref={wrapperRef} className="w-full overflow-hidden">
       {wrapperWidth > 0 && (
         <AgGridReact<Row>

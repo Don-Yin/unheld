@@ -30,19 +30,8 @@ body {
   font-family: var(--pp-font);
 }
 
-/*
- * The AI assistant panel renders outside Studio's own 20px-inset canvas (theme.ts's
- * studioCanvasPadding), so by default it sits flush against the window's top and left edges while
- * the grid/evidence cards start 20px in — a different top edge and no outer gutter (ui-critique.md
- * #3). `padding` moves only this box's *content*, not its own border (ag-studio draws the border
- * on this element itself) — a first attempt using padding left the border flush at the top while
- * the inset summary/grid/evidence cards' borders sat 20px lower (ui-critique.md #2, round 2).
- * `margin` moves the box itself, so the border now starts at the same 20px inset as the canvas.
- * A 20px margin-top still left the panel 10px above the cards (round 2, item 2): measured by pixel
- * (the panel's border lands at the canvas's padding-top exactly, but the canvas itself renders its
- * first row about 10px lower than that padding alone accounts for — an AG Studio internal offset
- * this theme has no param for), so the margin adds that measured 10px rather than guessing.
- */
+/* Align the assistant panel's border with the cards: the canvas's 20px inset plus a measured
+   10px Studio offset. Margin, not padding, because Studio draws the border on this box. */
 .ag-studio-root-panel-container-left {
   margin-top: 30px;
   margin-left: 20px;
@@ -67,15 +56,7 @@ body {
   vertical-align: middle;
 }
 
-/*
- * 00-button-icons: the AI panel's send button is AG Studio's own markup (aiAssistantInput.ts's
- * AiAssistantInput sets `eSendButton.textContent` directly, outside any React tree this app
- * controls) and, unlike the prompt-starter chips above (ai.ts's `icon: { url, mask: true }`),
- * AgAiHarnessConfig exposes no icon option for it at all — so there is no prop to pass here. A
- * `::before` pseudo-element is the only way in: `mask-image` loads public/icons/send.svg (the same
- * lucide "send" shape the rest of the app would use via lucide-react) and `background-color:
- * currentColor` paints it in the button's own text colour. The 8px gap matches the evidence actions.
- */
+/* Studio's send button has no icon option, so a masked ::before adds the lucide send icon. */
 .ag-studio-ai-assistant-send-button {
   display: inline-flex;
   align-items: center;
@@ -96,25 +77,7 @@ body {
   mask-repeat: no-repeat;
 }
 
-/*
- * 00-button-icons round 2: AG Studio draws its own built-in icons (thread dropdown caret, "new
- * chat", the side panel's collapse/expand chevrons, "back to bottom" and the grid toolbar's export
- * glyph) as a `span.ag-icon.ag-studio-icon-<name>` whose own base stylesheet (getStudioIconsCss in
- * main.esm.mjs) already sets `::before { mask: url("data:image/svg+xml,...") }` to one of AG's own
- * shapes — a filled triangle for the dropdown caret, AG's own glyphs for the rest. These are
- * replaced one icon at a time, each rule scoped to its own `ag-studio-icon-<name>` class so no
- * other AG Studio icon is touched, using the exact 16px / stroke 1.5 / currentColor pattern above:
- * redeclaring `mask-image`/`-webkit-mask-image` (plus `mask-size: contain`) overrides AG's `mask:`
- * shorthand with our own lucide svg, with no DOM patching. The grid's own row-selector icons inside
- * `.ag-cell` stay untouched (run.mjs's buttonsHaveIcons check already excludes them as agreed).
- *   ai-dropdown         ("new chat" thread dropdown caret) -> chevron-down
- *   ai-new-chat         ("New" button)                     -> message-square-plus
- *   double-chevron-left (panel collapse, LTR)               -> chevrons-left
- *   double-chevron-right(panel collapse, RTL)                -> chevrons-right
- *   double-chevron-down (panel expand, once collapsed)      -> chevrons-down
- *   ai-back-to-bottom   ("Back to bottom")                  -> arrow-down
- *   csv                 (grid toolbar export)                -> download (closest lucide match)
- */
+/* Replace Studio's built-in icons with the matching lucide icons, one class at a time. */
 .ag-studio-icon-ai-dropdown::before,
 .ag-studio-icon-ai-new-chat::before,
 .ag-studio-icon-double-chevron-left::before,
@@ -157,26 +120,7 @@ body {
   mask-image: url('/icons/download.svg');
 }
 
-/*
- * 00-ui-gantt round N (paypal-challenge peer): AG Studio's own `.ag-studio-layout-widget` (every
- * page widget - the gantt, the evidence card) carries `--ag-studio-layout-widget-resize-border-
- * color`, a resize-handle affordance meant for edit mode, but its `:hover` rule sets that colour
- * unconditionally (ag-studio's layoutWidget CSS), with no gate on whether editing is even reachable.
- * workbench.tsx renders AgStudio with `mode="view"` only - there is no edit mode, no resize handle
- * ever usable - so this hover ring is pure leftover: just moving the mouse over a widget (e.g.
- * Playwright's click() on a gantt row, or a real user reading the page) painted a blue ring 10px
- * outside the widget's own padded card (theme.ts's studioWidgetPadding), on whichever widget the
- * cursor last touched (gantt and evidence both show it in workbench-selected.png / workbench-
- * tracked.png) - well past any actual selection, and nowhere near the "selected widget" affordance
- * its colour choice (studioWidgetResizeBorderColor, theme.ts) implies. Dropped rather than moved to
- * hug the card: it has no real meaning for this view-only page to hug.
- */
-
-/*
- * PayPal design tokens: the single source of truth for the dashboard shell (through the
- * Tailwind colours below, e.g. bg-pp-blue), for AG Studio (app/dashboard/studio/theme.ts)
- * and for AG Grid (app/(endpoints)/data-grid.tsx), whose themes reference these variables directly.
- */
+/* PayPal design tokens, shared by Tailwind (bg-pp-blue), the Studio theme and the gantt grid. */
 :root {
   --pp-navy: #001c64;
   --pp-blue: #0070e0;
@@ -225,23 +169,13 @@ body {
   --font-paypal: var(--pp-font);
 }
 
-/* 00-ui-gantt round N (paypal-challenge peer): ag-studio's layout widget draws its resize-handle
-   ring from --ag-studio-layout-widget-resize-border-color, set on two independent rules - :hover
-   (mouse over the widget) and .ag-studio-layout-widget-selected, a class the layout system toggles
-   on click/focus regardless of the mouse, to var(--ag-accent-color) (this app's blue). Overriding only
-   :hover left the selected-class rule painting the same ring the moment a widget's content (e.g. a
-   gantt row) is clicked - the actual leftover seen here, not just hover. workbench.tsx renders
-   mode="view" only, so neither affordance is ever for anything: both are neutralised. */
+/* The page is view-only, so hide Studio's edit-mode resize ring on hover and selection. */
 .ag-studio-layout-widget:hover,
 .ag-studio-layout-widget.ag-studio-layout-widget-selected {
   --ag-studio-layout-widget-resize-border-color: transparent !important;
 }
 
-/* gantt-widget.tsx's day columns: see that file's DayHeader and BarCell comments. AG Grid's own 8px
-   header-cell padding left "today"'s pill nowhere to render (clipped to "toda"); gantt-bar-cell lets
-   a bar's label render outside the bar, into the day columns its colSpan already leaves empty, when
-   it doesn't fit inside - both would otherwise clip at `.ag-header-cell`'s and `.ag-cell`'s own
-   default `overflow: hidden`. */
+/* Gantt: room for the "today" pill, and bar labels may extend past their cell. */
 .ag-header-cell.gantt-day-header {
   padding-left: 2px !important;
   padding-right: 2px !important;

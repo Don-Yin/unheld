@@ -1,11 +1,5 @@
-// Seeds the sandbox PayPal orders and demo Gmail mail that data/holds.json's held-payment
-// fixtures point at. Run with `npm run seed` (reads env from .env.local, Next's own convention,
-// or from the process environment). `--fresh` clears every fixture's orderId first, so seedOrders
-// creates brand new sandbox orders in your own sandbox instead of reusing ids seeded elsewhere.
-//
-// Also imported (not re-implemented) by experiments/exp_002_unheld_workbench/run.mjs and
-// docs/video/unheld-demo/record.mjs in the private working repo, so this is the single home for
-// both the seeding logic and the Gmail REST helper it shares with run.mjs's own checks.
+// Seeds the sandbox orders and demo Gmail mail that data/holds.json points at. `npm run seed`
+// reads .env.local or the environment; `--fresh` creates new orders in your own sandbox.
 import { readFile, writeFile } from 'node:fs/promises';
 import { existsSync, realpathSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -63,14 +57,7 @@ export async function seedOrders(env) {
   return holds.map(({ id, orderId }) => ({ id, orderId }));
 }
 
-// A fresh sandbox order per fixture, always (never skipping one that already has an order),
-// returned in memory only - never written to data/holds.json. Used by the running app's demo
-// reset (lib/demo-reset.ts): a tracker, once added to a sandbox order, cannot be removed (lib/
-// paypal.ts has no untrack call), so the only way to give the next judge Tom's untracked "18 days
-// sooner" moment back is a brand new order, not the one seedOrders already keeps. Render's disk is
-// ephemeral, so a write here would not survive a restart any better than seedOrders' own write
-// does (see clearOrderIds below) - a fresh process must reach a clean state without reading
-// anything back off disk.
+// A new order per fixture, kept in memory, for the demo reset (a tracker cannot be removed).
 export async function freshOrderIds(env) {
   const holds = await readHolds();
   const ids = {};
@@ -93,17 +80,8 @@ const DEMO_MAIL = [
 export async function seedMail(env) {
   for (const m of DEMO_MAIL) {
     const addr = (a) => (a === 'me' ? env.GMAIL_TEST_ADDRESS : a);
-    // Keyed by the other party's address, not just the hold id: when data/holds.json's buyer
-    // changes (task 00-demo-reset's follow-up, Maya/Tom/Priya becoming creators), the old
-    // buyer's message has a different address and so is simply never matched here again - it is
-    // left behind in the mailbox (messages.trash needs a scope this token does not have, confirmed
-    // 403), but mailWith(buyerEmail) only ever reads mail to/from the *current* buyer, so it is
-    // never shown as evidence either.
-    // A Message-ID header may have only one '@' (RFC 5322); Gmail's own insert silently replaces a
-    // malformed one with a generated id, which breaks the rfc822msgid dedupe check below without
-    // any error - it looked idempotent locally and only showed up as a duplicate evidence row
-    // (paypal-challenge peer review). The buyer's address already has an '@', so it is folded into
-    // a '.' here to keep the whole id to exactly one.
+    // Keyed by the other party's address, so a changed buyer never matches an old message. The
+    // address's '@' becomes '.' because Gmail replaces a Message-ID with two '@' signs.
     const other = ((m.from === 'me' ? m.to : m.from).match(/<(.+)>/)?.[1] ?? addr(m.from === 'me' ? m.to : m.from)).replace('@', '.');
     const msgId = `<unheld-demo-${m.id}-${other}@unheld.local>`;
     if ((await gmail(env, `messages?q=${encodeURIComponent(`rfc822msgid:${msgId}`)}&includeSpamTrash=true`)).messages) continue;
@@ -114,8 +92,7 @@ export async function seedMail(env) {
   }
 }
 
-// Clears every fixture's orderId, so a fresh sandbox (your own PAYPAL_CLIENT_ID/SECRET) creates
-// its own new orders instead of reusing ids seeded against someone else's sandbox.
+// Clears every fixture's orderId, so your own sandbox creates its own orders.
 async function clearOrderIds() {
   const holds = await readHolds();
   for (const h of holds) delete h.orderId;

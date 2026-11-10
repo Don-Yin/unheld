@@ -89,13 +89,8 @@ export function buildAi(models: string[]): AgAiHarnessSetup {
           : directLlmRunner({ ...agent, adapter }),
       ),
       models: models.length > 1 ? models.map((id) => ({ id, label: id })) : undefined,
-      // The chips' icon has no React tree to render into (AG Studio's own AiAssistantPanel
-      // harness builds this DOM), so each uses `{ url, mask: true }` — Studio's own documented
-      // icon option, which paints the SVG as a `mask-image` in the chip's text colour — instead of
-      // the globals.css `::before`-mask technique the Send button below needs (that button has no
-      // configurable icon option at all, not even this one). calendar-clock.svg is the exact same
-      // shape as icons.tsx's SOURCE_ICON_NODES.estimate, so the "release date" idea reads as one
-      // icon everywhere it appears, not two similar-looking ones.
+      // Studio paints `{ url, mask: true }` icons in the chip's text colour. calendar-clock matches
+      // the estimate source icon.
       promptStarters: [
         { label: 'what can you do today?', prompt: 'For each held payment, tell me the next step and do the ones you can.', icon: { url: '/icons/list-checks.svg', mask: true } },
         { label: 'when do i get paid?', prompt: 'When should each held payment be released, and why?', icon: { url: '/icons/calendar-clock.svg', mask: true } },
