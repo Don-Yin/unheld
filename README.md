@@ -13,7 +13,7 @@ posts. The demo's bars show temporary hold only (111), limited or banned (78), s
 ## Demo
 
 - Hosted at <https://unheld.onrender.com>. The access code is in the Devpost testing instructions.
-- Video `<TO FILL: YouTube URL>`
+- Video <https://youtu.be/3JerLuNG0JU>
 
 ## How it works
 
