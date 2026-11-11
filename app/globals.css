@@ -190,4 +190,11 @@ body {
     --ag-studio-panel-width: calc(100vw - 42px) !important;
   }
   .ag-studio-root-panel-container-left:has(.ag-studio-panel-header[aria-expanded='true']) + .ag-studio-root-canvas { display: none; }
+  /* 44px tap targets */
+  .ag-studio-ai-panel :is(.ag-studio-panel-header, .ag-studio-ai-thread-button, .ag-studio-ai-thread-new-button, .ag-studio-ai-prompt-starter, .ag-studio-ai-assistant-send-button) {
+    min-height: 44px;
+  }
 }
+
+/* The assistant's tool steps show internal tool names; the answer carries the sources. */
+.ag-studio-ai-rail { display: none; }

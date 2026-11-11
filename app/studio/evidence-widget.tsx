@@ -1,7 +1,7 @@
 'use client';
 
 // One payment, its source-labelled evidence, and only the action its next step needs.
-import { useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { ChevronDown, ChevronUp, ExternalLink, LoaderCircle, Mail, Truck } from 'lucide-react';
 import type { AgDefaultWidgetDefinition, AgWidgetData, AgWidgetDataFormat } from 'ag-studio';
 import type { AgRegistry, AgWidgetDefinition } from 'ag-studio-react';
@@ -26,6 +26,11 @@ function PaymentEvidence({ hold, rows }: { hold: Hold; rows: Evidence[] }) {
   const state = actions[hold.id];
   const result = state?.result;
   const [details, setDetails] = useState(false);
+  const timeline = useRef<HTMLOListElement>(null);
+  // Below a draft the opened evidence starts out of view; bring it in.
+  useEffect(() => {
+    if (details && hold.draft) timeline.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [details, hold.draft]);
   const track = hold.nextStep === 'add tracking';
   const needsDraft = hold.nextStep === 'confirm with buyer' && !hold.draft;
 
@@ -53,7 +58,7 @@ function PaymentEvidence({ hold, rows }: { hold: Hold; rows: Evidence[] }) {
             <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{hold.draft.body}</p>
           </div>
         )}
-        {(!hold.draft || details) && <ol data-testid="evidence-timeline" className="space-y-3 sm:grid sm:grid-cols-[3.5rem_max-content_minmax(0,1fr)] sm:items-baseline sm:gap-x-3 sm:gap-y-2 sm:space-y-0">
+        {(!hold.draft || details) && <ol ref={timeline} data-testid="evidence-timeline" className="space-y-3 sm:grid sm:grid-cols-[3.5rem_max-content_minmax(0,1fr)] sm:items-baseline sm:gap-x-3 sm:gap-y-2 sm:space-y-0">
           {rows.map((row) => {
             const SourceIcon = SOURCE_ICON[row.source];
             return (

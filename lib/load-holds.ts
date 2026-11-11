@@ -68,7 +68,7 @@ async function oneHold(f: Fixture, now: number): Promise<{ hold: Hold; evidence:
   let n = 0;
   const ev = (at: string, source: Source, text: string): Evidence => ({ id: `${f.id}-${n++}`, holdId: f.id, at, source, text });
   const evidence = [
-    ev(capture.create_time, 'paypal', `payment captured, ${unit.amount.currency_code} ${unit.amount.value} (${capture.status.toLowerCase()})`),
+    ev(capture.create_time, 'paypal', `payment received, ${unit.amount.currency_code} ${unit.amount.value}`),
     ev(capture.create_time, 'simulated', `hold placed: ${f.hold}`),
     ...trackers.map((t) => ev(capture.create_time, 'paypal', `tracker ${t.id.split('-').pop()} on the order, ${t.status.toLowerCase()}`)),
     ...mail
@@ -77,7 +77,7 @@ async function oneHold(f: Fixture, now: number): Promise<{ hold: Hold; evidence:
   ];
   const today = new Date(now).toISOString();
   if (kind === 'digital' && confirmed)
-    evidence.push(ev(today, 'you', 'mark the order completed in paypal (no api for this step)'));
+    evidence.push(ev(today, 'you', 'mark it complete in paypal (no api for this step)'));
   evidence.push(ev(today, 'estimate', releaseText(kind, state, hold.release)));
   // Same-day rows follow story order, so a buyer's mail never sorts above the capture it follows.
   const STORY_ORDER: Record<Source, number> = { paypal: 0, simulated: 1, gmail: 2, you: 3, estimate: 4 };
@@ -87,7 +87,7 @@ async function oneHold(f: Fixture, now: number): Promise<{ hold: Hold; evidence:
 
 function releaseText(kind: Hold['kind'], s: { confirmed: boolean; tracked: boolean }, date: string) {
   const when = formatDate(date);
-  if (kind === 'digital' && s.confirmed) return `about ${when}: ${RELEASE_RULES.afterCompleted} days after you mark it completed today`;
+  if (kind === 'digital' && s.confirmed) return `about ${when}: ${RELEASE_RULES.afterCompleted} days after you mark it complete today`;
   if (kind === 'physical' && s.tracked) return `about ${when}: ${RELEASE_RULES.afterDelivery} day after delivery, if delivery takes 2 days`;
   return `by ${when} at the latest: ${RELEASE_RULES.longest} days after the payment`;
 }
