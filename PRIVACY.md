@@ -18,9 +18,10 @@ no database and no analytics.
 
 - **Gmail**: a draft reply in the creator's mailbox, only when the creator presses "create draft
   reply" or asks the assistant to act. Unheld has no send call; the creator reviews and sends the
-  draft themselves.
+  draft themselves. Resetting the demo, including access-code sign-in, deletes drafts this app
+  created.
 - **PayPal**: a shipment tracker on an existing sandbox order, only when the creator presses "add
-  tracking" or asks the assistant to act. The app never captures, releases or refunds money.
+  tracking" or asks the assistant to act. Demo startup, sign-in and reset create fresh paid sandbox orders; the demo never moves real money.
   Marking an order complete is a manual step the creator takes in PayPal.
 
 ## Who else receives data
