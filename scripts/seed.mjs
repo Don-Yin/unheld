@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { gmail, paypal } from '../lib/api-clients.mjs';
-export { gmail }; // The runner and video recorder use the same explicit-env client.
+export { gmail };
 
 const APP = dirname(dirname(fileURLToPath(import.meta.url)));
 const FIXTURES = join(APP, 'data', 'holds.json');

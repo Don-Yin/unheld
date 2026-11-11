@@ -1,9 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-  <!-- Ring of 8 short ticks (lucide's own Loader spokes, shortened to read as a clock face rather
-       than a loading spinner) around a pound sign: the hold mark for unheld (00-ui-gantt round N,
-       paypal-challenge peer), replacing an hourglass that read as generic "loading" rather than the
-       specific held-payment amount. Kept identical to app/app/studio/icons.tsx's inline HoldIcon -
-       edit both together. -->
+  <!-- The hold mark: a pound sign in a ring of clock ticks. Same shape as HoldIcon in app/studio/icons.tsx. -->
   <path d="M12 2v2" />
   <path d="m17.7 6.3 1.4-1.4" />
   <path d="M20 12h2" />

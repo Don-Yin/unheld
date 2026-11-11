@@ -1,13 +1,4 @@
-# Render Blueprint for the assembled public repo (scripts/assemble-public.mjs
-# copies this file to the repo root, next to package.json).
-#
-# Env var values are intentionally left unset here (sync: false): set them by
-# hand in the Render dashboard after deploy, never commit secrets to this file
-# or to Git. See env.example in this app for what each one does.
-#
-# Starter is the paid 0.5 CPU / 512 MB web-service compute plan (legacy name
-# for plan id 0.5c-512mb, ~$7/month); it does not require a paid workspace
-# plan (Hobby/free workspace is enough), just billing set up for the service.
+# Render Blueprint. Set env values in the Render dashboard (see env.example).
 services:
   - type: web
     name: unheld

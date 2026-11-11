@@ -1,11 +1,7 @@
 import { admit, sanitize } from '@/lib/ai/guard';
 import { aiConfig } from '@/lib/ai/provider';
 
-// Proxy for AG Studio's OpenAI adapter (app/studio/openai-adapter.ts). The adapter runs in the browser
-// and POSTs to `${endpoint}/responses`; with its endpoint set to /api/ai it lands here. This checks the
-// request (lib/ai/guard.ts), adds the server's key for the configured provider (lib/ai/provider.ts),
-// forwards it to that provider's Responses API and streams the SSE reply straight back, so the adapter
-// works unchanged and the key never leaves the server.
+// Server proxy for the browser's AI adapter: checks the request, adds the key, streams the reply.
 
 const error = (status: number, message: string) => Response.json({ error: { message } }, { status });
 

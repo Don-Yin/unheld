@@ -1,6 +1,4 @@
-// Access code gate for the public demo. With ACCESS_CODE unset (local runs) everything is open.
-// Every page and API route sits behind it, including the AI proxy, so a stranger cannot spend the
-// model budget or write Gmail drafts.
+// Access-code gate on every page and API route. Open when ACCESS_CODE is unset.
 
 import { NextResponse, type NextRequest } from 'next/server';
 

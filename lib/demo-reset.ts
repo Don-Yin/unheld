@@ -1,7 +1,5 @@
-// Demo reset: every judge starts from the same state. PayPal cannot remove a tracker and Gmail
-// drafts pile up, so a reset creates fresh sandbox orders (seed.mjs's logic) and deletes only the
-// drafts this app created. State is in memory (Render's disk is ephemeral) and on globalThis,
-// because Next.js bundles each route separately and a module-level variable would not be shared.
+// Demo reset: fresh sandbox orders and only this app's drafts deleted, so every visitor starts
+// alike. State lives on globalThis because Next.js bundles each route separately.
 
 import { freshOrderIds } from '@/scripts/seed.mjs';
 import { deleteDraft, readDraft } from './gmail';

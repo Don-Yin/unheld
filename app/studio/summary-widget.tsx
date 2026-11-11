@@ -1,7 +1,6 @@
 'use client';
 
-// The quiet one-line summary above the grid (ui-critique.md #2): "£225 held · 3 payments ·
-// next: 6 Nov". Plain text, tabular-nums, no card of its own beyond the widget's shared frame.
+// One-line summary above the calendar: "£225 held · 3 payments · next: 6 Nov".
 
 import { useSyncExternalStore } from 'react';
 import type { AgWidgetData, AgWidgetDataFormat } from 'ag-studio';

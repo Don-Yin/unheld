@@ -1,6 +1,4 @@
-// Server-side limits on /api/ai. They sit behind the access-code gate (proxy.ts) and under the
-// provider's own spend cap (for OpenRouter, the key's daily credit limit), so even a leaked access
-// code cannot turn the deployment into a general-purpose model proxy.
+// Limits on /api/ai, behind the access code and the provider's own spend cap.
 
 const MAX_BODY_CHARS = 600_000; // the assistant sends the whole conversation plus Studio's tool schemas
 const MAX_OUTPUT_TOKENS = 8_000; // per turn, reasoning included

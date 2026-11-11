@@ -1,6 +1,4 @@
-// Which model service the assistant talks to. Server-only: the key has no NEXT_PUBLIC_ prefix and is
-// never passed to a client component, so it never reaches the browser.
-// AI_PROVIDER picks one of three fixed endpoints, so a deployment cannot send the key anywhere else.
+// The assistant's model service: one of three fixed endpoints. Server-only, so the key stays here.
 
 const ENDPOINTS = {
   openrouter: 'https://openrouter.ai/api/v1',
