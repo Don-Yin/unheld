@@ -2,7 +2,9 @@
 
 unheld answers one question for creators whose PayPal payment is on hold: "when does the creator get paid?"
 
-[![Watch the 2:58 demo on YouTube](docs/video-thumbnail.png)](https://youtu.be/3JerLuNG0JU)
+## 🎥 Demo video
+
+[![Watch the 2:58 demo video on YouTube](docs/video-cover.png)](https://youtu.be/3JerLuNG0JU)
 
 Hosted demo: <https://unheld.onrender.com> (access code in the Devpost testing instructions).
 
