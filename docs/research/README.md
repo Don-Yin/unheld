@@ -1,44 +1,14 @@
-<!-- Staged curated market research for the public repo. Figures only: aggregate counts and
-     charts, never the corpus or usernames. -->
+# Research
 
-# Market research
+Before building, I read 3,655 public posts about money problems. 268 came from sellers whose PayPal payment was held, mostly on Bluesky (117) and Reddit (85).
 
-Why we targeted P4 (creators whose PayPal income is held). Figures only; the labelled text corpus
-they were computed from stays private and is git-ignored in the working repo, because it contains
-usernames.
-
-Source: `experiments/exp_001_market_research` in the working repo (`run.py`, outputs in
-`.results/`). Method: `src/modules/data.py` reads three local, git-ignored JSON files
-(`labelled-stats.json`, `solutions.json`, `corpus.json`) and every chart runs through an automated
-plotting-convention checker before being accepted.
-
-## Files staged here
-
-| File | Source |
+| What the 268 posts describe (a post can count in more than one row) | Posts |
 |---|---|
-| `00-groups-pain-unresolved-rivals.png` | `experiments/exp_001_market_research/.results/00-groups-pain-unresolved-rivals.png` (`src/modules/fig_groups.py`) |
-| `01-groups-radar.png` | `experiments/exp_001_market_research/.results/01-groups-radar.png` (`src/modules/fig_radar.py`) |
-| `02-p4-what-creators-report.png` | `experiments/exp_001_market_research/.results/02-p4-what-creators-report.png` (`src/modules/fig_p4.py`) |
+| Temporary hold only | 111 |
+| Limited or banned | 78 |
+| Support unreachable | 38 |
+| Needs it for rent, food or bills | 21 |
 
-## Headline figures
+Only 23 posts say the hold was fixed. The rest report no fix or never followed up, so some may have been resolved without saying so. The video walks through these numbers from [00:18](https://youtu.be/3JerLuNG0JU?t=18).
 
-- 15 profiling groups (P1-P7, N1-N15) were scored on five equally-weighted axes: pain authors,
-  independent threads, unresolved share, few hackathon rivals, few existing products.
-- **P4 (creator hold) ranks first**, radar area 42%, with 227 pain authors and 166 independent
-  threads, the most of any group.
-- Next: N4 (gig worker) 29%, N1 (elder parent) 22%, P6 (buyer dispute) 21%.
-- Unresolved share is high everywhere (71%-98% across groups), so it separates groups less than
-  the other axes.
-- Rival counts are a lower bound: the current hackathon's entry gallery was unpublished at the
-  time of this research, so "few rivals" likely undercounts competition.
-- Within P4 specifically: 268 posts were reviewed for what creators report about held funds
-  (`02-p4-what-creators-report.png`); per `docs/design.md`, about 111 describe a temporary hold
-  with no clear release step and 63 involve commissions, tips or donations (digital services with
-  no carrier tracking number).
-
-## What is intentionally excluded
-
-- The labelled text corpus (`corpus.json`, `labelled-stats.json`, `solutions.json`) and any
-  source thread/post text.
-- Usernames, handles or any other author-identifying detail.
-- Anything not already aggregated into the counts and chart images above.
+Only these counts are published. The posts themselves stay private, because they contain usernames.

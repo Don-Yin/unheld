@@ -8,7 +8,7 @@
 | How it works, and how it uses AG Studio | [`how-it-works.md`](how-it-works.md) |
 | Run locally, with sandbox credentials | [`run-locally.md`](run-locally.md) |
 | Workbench screenshot | [`screenshot.png`](screenshot.png) |
-| Market research: why creators with held payments | [`research/`](research/README.md) |
+| Research: why held payments | [`research/`](research/README.md) |
 | Privacy | [`../PRIVACY.md`](../PRIVACY.md) |
 | Licence (MIT) | [`../LICENSE`](../LICENSE) |
 

@@ -46,7 +46,7 @@ no database and no analytics.
 
 ## Research material
 
-The `docs/research/` charts and the demo video draw on public posts in which sellers describe PayPal
+The `docs/research/` counts and the demo video draw on public posts in which sellers describe PayPal
 holds. Only counts and anonymised excerpts are published: names, handles, avatars, profile photos,
 links, email addresses and payment handles are removed or blurred. The raw collection of posts is
 not published.
