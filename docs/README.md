@@ -5,6 +5,8 @@
 | Demo video (2:58) | <https://youtu.be/3JerLuNG0JU> |
 | Devpost project | <https://devpost.com/software/unheld> |
 | Hosted demo (access code in the Devpost testing instructions) | <https://unheld.onrender.com> |
+| How it works, and how it uses AG Studio | [`how-it-works.md`](how-it-works.md) |
+| Run locally, with sandbox credentials | [`run-locally.md`](run-locally.md) |
 | Workbench screenshot | [`screenshot.png`](screenshot.png) |
 | Market research: why creators with held payments | [`research/`](research/README.md) |
 | Privacy | [`../PRIVACY.md`](../PRIVACY.md) |
