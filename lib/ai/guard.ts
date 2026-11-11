@@ -13,7 +13,7 @@ export function admit(bodyChars: number): string | undefined {
   const today = new Date().toISOString().slice(0, 10);
   if (today !== day) [day, used] = [today, 0];
   // In memory: a restart resets the count early, which the provider's spend cap still bounds.
-  if (limit > 0 && ++used > limit) return 'the assistant has reached today\'s limit; it resets at midnight UTC';
+  if (limit > 0 && ++used > limit) return 'daily limit reached; resets at midnight UTC';
 }
 
 /** The request as sent upstream: an allowed model, capped output, and only our own function tools. */

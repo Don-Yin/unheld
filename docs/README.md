@@ -21,7 +21,7 @@
 | [`app/studio/ai.ts`](../app/studio/ai.ts) | The assistant's instructions and its three tools |
 | [`app/studio/theme.ts`](../app/studio/theme.ts) | AG Studio and AG Grid themes from the app's design tokens |
 | [`lib/load-holds.ts`](../lib/load-holds.ts) | Builds each hold and its evidence from PayPal, Gmail and the fixtures |
-| [`lib/demo-reset.ts`](../lib/demo-reset.ts) | Gives every judge the same fresh demo state |
+| [`lib/demo-reset.ts`](../lib/demo-reset.ts) | Fresh demo state after 15 idle minutes; a sign-in during use joins the same demo |
 | [`lib/ai/`](../lib/ai/) | Model provider, request guard and limits |
 | [`data/holds.json`](../data/holds.json) | The three simulated holds |
 | [`scripts/seed.mjs`](../scripts/seed.mjs) | Seeds the sandbox orders and demo Gmail mail |

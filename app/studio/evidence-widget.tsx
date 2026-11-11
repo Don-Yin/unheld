@@ -2,7 +2,7 @@
 
 // One payment, its source-labelled evidence, and only the action its next step needs.
 import { useState, useSyncExternalStore } from 'react';
-import { ChevronDown, ChevronUp, ExternalLink, Mail, Truck } from 'lucide-react';
+import { ChevronDown, ChevronUp, ExternalLink, LoaderCircle, Mail, Truck } from 'lucide-react';
 import type { AgDefaultWidgetDefinition, AgWidgetData, AgWidgetDataFormat } from 'ag-studio';
 import type { AgRegistry, AgWidgetDefinition } from 'ag-studio-react';
 import { formatDate, gbp, type Evidence, type Hold } from '@/lib/holds';
@@ -72,18 +72,20 @@ function PaymentEvidence({ hold, rows }: { hold: Hold; rows: Evidence[] }) {
         {details && (
           <div id={`payment-details-${hold.id}`} className="space-y-2 text-xs text-pp-muted">
             <p className="break-all">order {hold.orderId} · capture {hold.captureId}</p>
-            <p>the sandbox never withholds money. these holds are simulated; release dates are estimates from paypal&apos;s published rules, not promises.</p>
+            <p>holds are simulated; dates are estimates.</p>
           </div>
         )}
       </section>
-      {result?.ok && state?.action === 'track' && <p role="status" className="shrink-0 text-pp-success">tracking added to the paypal order</p>}
+      {result?.ok && state?.action === 'track' && <p role="status" className="shrink-0 text-pp-success">tracking added</p>}
       {result?.error && <p role="alert" className="shrink-0 text-pp-danger">{result.error}</p>}
       {result?.refreshError && <p role="alert" className="shrink-0 text-pp-warning">{result.refreshError}</p>}
       <footer className="mt-auto flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2">
         {(track || needsDraft) && (
-          <button onClick={() => runAction(hold.id, track ? 'track' : 'draft')} disabled={state?.busy || result?.uncertain} className={primaryAction}>
-            {track ? <Truck className={icon} strokeWidth={1.5} aria-hidden /> : <Mail className={icon} strokeWidth={1.5} aria-hidden />}
-            {state?.busy ? 'working…' : track ? `add tracking ${hold.trackingFound}` : 'create draft reply'}
+          // While busy only the icon becomes a spinner, so the button keeps its size.
+          <button onClick={() => runAction(hold.id, track ? 'track' : 'draft')} disabled={state?.busy || result?.uncertain} aria-busy={state?.busy} className={primaryAction}>
+            {state?.busy ? <LoaderCircle className={`${icon} motion-safe:animate-spin`} strokeWidth={1.5} aria-hidden />
+              : track ? <Truck className={icon} strokeWidth={1.5} aria-hidden /> : <Mail className={icon} strokeWidth={1.5} aria-hidden />}
+            {track ? `add tracking ${hold.trackingFound}` : 'create draft reply'}
           </button>
         )}
         {hold.nextStep === 'mark complete' && (
@@ -108,7 +110,7 @@ function PaymentEvidence({ hold, rows }: { hold: Hold; rows: Evidence[] }) {
 function EvidenceWidget() {
   const { data, selected } = useSyncExternalStore(holdsStore.subscribe, holdsStore.view, holdsStore.view);
   const hold = data?.holds.find((h) => h.id === selected);
-  if (!hold) return <p className="grid h-full place-items-center p-6 text-center text-sm text-pp-muted">{data?.holds.length ? 'select a payment to see its evidence' : 'no held payments'}</p>;
+  if (!hold) return <p className="grid h-full place-items-center p-6 text-center text-sm text-pp-muted">{data?.holds.length ? 'select a payment' : 'no held payments'}</p>;
   // The server orders same-day sources. Keep its order, and reset only local disclosure/scroll state.
   return <PaymentEvidence key={hold.id} hold={hold} rows={(data?.evidence ?? []).filter((row) => row.holdId === hold.id)} />;
 }

@@ -77,7 +77,7 @@ async function oneHold(f: Fixture, now: number): Promise<{ hold: Hold; evidence:
   ];
   const today = new Date(now).toISOString();
   if (kind === 'digital' && confirmed)
-    evidence.push(ev(today, 'you', 'in paypal, open this payment and mark the order as completed. paypal offers no api for this step.'));
+    evidence.push(ev(today, 'you', 'mark the order completed in paypal (no api for this step)'));
   evidence.push(ev(today, 'estimate', releaseText(kind, state, hold.release)));
   // Same-day rows follow story order, so a buyer's mail never sorts above the capture it follows.
   const STORY_ORDER: Record<Source, number> = { paypal: 0, simulated: 1, gmail: 2, you: 3, estimate: 4 };

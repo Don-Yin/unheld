@@ -1,4 +1,4 @@
-# Privacy: Unheld (demo)
+# <img src="public/brand-mark.svg" width="28" alt=""> Privacy: unheld (demo)
 
 Unheld is a hackathon demo for one independent creator managing their own held PayPal payments.
 It acts only on the creator's own Gmail and PayPal sandbox accounts. It has no user accounts,
@@ -18,10 +18,10 @@ no database and no analytics.
 
 - **Gmail**: a draft reply in the creator's mailbox, only when the creator presses "create draft
   reply" or asks the assistant to act. Unheld has no send call; the creator reviews and sends the
-  draft themselves. Resetting the demo, including access-code sign-in, deletes drafts this app
-  created.
+  draft themselves. Resetting the demo, including the first sign-in after 15 idle minutes,
+  deletes drafts this app created.
 - **PayPal**: a shipment tracker on an existing sandbox order, only when the creator presses "add
-  tracking" or asks the assistant to act. Demo startup, sign-in and reset create fresh paid sandbox orders; the demo never moves real money.
+  tracking" or asks the assistant to act. Each demo reset creates fresh paid sandbox orders; the demo never moves real money.
   Marking an order complete is a manual step the creator takes in PayPal.
 
 ## Who else receives data

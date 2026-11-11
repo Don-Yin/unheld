@@ -35,7 +35,7 @@ export async function requestJson<T>(path: string, init?: RequestInit): Promise<
     throw new ApiError('enter the access code again');
   }
   const body = await res.json();
-  if (!res.ok) throw new ApiError(body.error ?? 'unheld could not complete the request', body.uncertain);
+  if (!res.ok) throw new ApiError(body.error ?? 'request failed', body.uncertain);
   return body as T;
 }
 
@@ -55,7 +55,7 @@ export function selectSmoothly(id: string) {
 
 /** Save first, then refresh. A saved write must never be reported as failed because its read failed. */
 export async function runAction(holdId: string, action: 'track' | 'draft', input: Record<string, string> = {}): Promise<ActionResult> {
-  if (view.actions[holdId]?.busy) return { ok: false, error: 'this payment action is already running' };
+  if (view.actions[holdId]?.busy) return { ok: false, error: 'already running' };
   actionState(holdId, { action, busy: true });
   let result: ActionResult;
   try {
@@ -63,12 +63,12 @@ export async function runAction(holdId: string, action: 'track' | 'draft', input
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
     });
   } catch (e) {
-    result = { ok: false, uncertain: e instanceof ApiError ? e.uncertain : true, error: e instanceof ApiError ? e.message : 'could not confirm the write; refresh payments before trying again' };
+    result = { ok: false, uncertain: e instanceof ApiError ? e.uncertain : true, error: e instanceof ApiError ? e.message : 'not sure it saved; refresh to check' };
   }
   if (result.ok) {
     if (result.draft && view.data) holdsStore.set({ ...view.data, holds: view.data.holds.map((h) => h.id === holdId ? { ...h, draft: result.draft } : h) });
     try { await reloadHolds(); }
-    catch { result = { ...result, refreshError: 'saved, but the latest payments could not be read; refresh payments to check' }; }
+    catch { result = { ...result, refreshError: 'saved; refresh to see it' }; }
   }
   actionState(holdId, { action, busy: false, result });
   return result;

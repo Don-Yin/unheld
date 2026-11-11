@@ -9,7 +9,7 @@ npm run seed
 npm run dev
 ```
 
-With these credentials it works as is. With your own PayPal sandbox app, run `npm run seed -- --fresh` to create new orders. Gmail evidence is optional and needs your own OAuth client and mailbox.
+With these credentials the PayPal side works. The buyer emails, drafts and the assistant also need Gmail and `AI_API_KEY`; the hosted demo has all of them. With your own PayPal sandbox app, run `npm run seed -- --fresh` to create new orders. Gmail evidence is optional and needs your own OAuth client and mailbox.
 
 ## Sandbox test credentials
 

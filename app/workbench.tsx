@@ -31,14 +31,16 @@ const panels = { view: { left: ['ai'], right: [] } } as unknown as AgPanelConfig
 export function Workbench({ initial, licenseKey, aiModels }: Props) {
   const [busy, setBusy] = useState<'refresh' | 'reset'>();
   const [error, setError] = useState<string>();
+  const [epoch, setEpoch] = useState(0); // bumped by reset so the assistant starts a new chat
   const refresh = async (reset = false) => {
-    if (busy || (reset && !window.confirm('reset the demo? this replaces the sandbox orders and deletes drafts created by unheld.')))
+    if (busy || (reset && !window.confirm('reset the demo? orders and drafts start fresh.')))
       return;
     setBusy(reset ? 'reset' : 'refresh');
     setError(undefined);
     try {
       if (reset) await requestJson('/api/reset', { method: 'POST' });
       await reloadHolds();
+      if (reset) setEpoch((n) => n + 1);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'could not refresh payments');
     } finally {
@@ -129,7 +131,7 @@ export function Workbench({ initial, licenseKey, aiModels }: Props) {
       </header>
       {error && <p role="alert" className="shrink-0 border-b border-pp-border bg-pp-surface px-5 py-2 text-sm text-pp-danger">{error}</p>}
       <main className="min-h-0 flex-1">
-        <AgStudioProvider licenseKey={licenseKey} modules={ai ? [AgStudioAiModule] : undefined}>
+        <AgStudioProvider key={epoch} licenseKey={licenseKey} modules={ai ? [AgStudioAiModule] : undefined}>
           <AgStudio<UnheldRegistry>
             style={{ height: '100%', width: '100%' }}
             theme={agStudioPayPalTheme}

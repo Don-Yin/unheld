@@ -183,3 +183,11 @@ body {
 .ag-cell.gantt-bar-cell {
   overflow: visible !important;
 }
+
+/* Phone: an open assistant takes the full width; collapse it to get the payments back. */
+@media (max-width: 767px) {
+  .ag-studio-root-panel-container-left:has(.ag-studio-panel-header[aria-expanded='true']) .ag-studio-ai-panel {
+    --ag-studio-panel-width: calc(100vw - 42px) !important;
+  }
+  .ag-studio-root-panel-container-left:has(.ag-studio-panel-header[aria-expanded='true']) + .ag-studio-root-canvas { display: none; }
+}
